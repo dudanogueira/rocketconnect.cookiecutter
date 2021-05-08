@@ -1,0 +1,13 @@
+{
+    "sessionId": "test_session_instance1",
+    "sessionDataPath": "session_data",
+    "webhook": [{
+        "url": "http://tasks.rocketconnect:5000/connector/0696DBBDDBA5435682CA/",
+        "events": ["onPlugged", "onMessage", "onBattery", "onIncomingCall", "onStateChanged", "onLogout", "onIncomingCall"]
+    }],
+    "stats": true,
+    "headful": false,
+    "disableSpins": true,
+    "browserWSEndpoint": "http://browser:3000",
+    "noKillOnLogout": false
+}

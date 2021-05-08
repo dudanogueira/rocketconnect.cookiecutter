@@ -1,0 +1,235 @@
+version: '3'
+
+volumes:
+  production_postgres_data: {}
+  {%- if cookiecutter.use_waautomate == 'y' %}
+  production_waautomate_data: {}
+  {%- endif %}
+
+services:
+  rocketconnect: &django
+    image: dudanogueira/rocket.connect:master
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DJANGO_DEBUG: "True"
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_SECRET_KEY: !!!SET DJANGO_SECRET_KEY!!!
+      DJANGO_ADMIN_URL: admin!!!SET DJANGO_ADMIN_URL!!!/
+      DJANGO_ALLOWED_HOSTS: "{{cookiecutter.domain}}"
+      DJANGO_SECURE_SSL_REDIRECT: "False"
+      DJANGO_SERVER_EMAIL: 
+      DJANGO_ACCOUNT_ALLOW_REGISTRATION: "True"
+      WEB_CONCURRENCY: 4
+      REDIS_URL: redis://redis:6379/0
+      CELERY_FLOWER_USER: admin
+      CELERY_FLOWER_PASSWORD: !!!SET CELERY_FLOWER_PASSWORD!!!
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: rocket_connect
+      POSTGRES_USER: !!!SET POSTGRES_USER!!!
+      POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
+      DJANGO_DEFAULT_FROM_EMAIL: email@company.com
+      DJANGO_EMAIL_PORT: 587
+      DJANGO_EMAIL_USE_TLS: "True"
+      DJANGO_EMAIL_HOST: 'smtp_server'
+      DJANGO_EMAIL_HOST_USER: 'smtp_user'
+      DJANGO_EMAIL_HOST_PASSWORD: 'smtp_password'
+    healthcheck:
+      test: curl --fail http://localhost:5000
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 2
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.rocketconnect.rule=Host(`{{ cookiecutter.domain }}`)"
+        - "traefik.http.services.rocketconnect.loadbalancer.server.port=5000"
+        {%- if cookiecutter.use_letsencrypt == 'y' %}    
+        - "traefik.http.routers.rocketconnect.entrypoints=websecure"
+        - "traefik.http.routers.rocketconnect.tls.certresolver=le"
+        {%- endif %}
+    command: /start
+    {%- if cookiecutter.use_traefik == 'y' %}
+    ports:
+     - "5000:5000"
+    {%- endif %}
+  
+  postgres:
+    image: postgres
+    volumes:
+      - production_postgres_data:/var/lib/postgresql/data:Z
+    deploy:
+      mode: global
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: rocket_connect
+      POSTGRES_USER: !!!SET POSTGRES_USER!!!
+      POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
+
+  redis:
+    image: redis:5.0
+    deploy:
+      replicas: 1    
+
+  celeryworker:
+    <<: *django
+    deploy:
+      replicas: 1    
+    command: /start-celeryworker
+    ports: []
+    healthcheck:
+      disable: true
+
+  celerybeat:
+    <<: *django
+    deploy:
+      replicas: 1    
+    command: /start-celerybeat
+    ports: []
+    healthcheck:
+      disable: true
+
+  flower:
+    <<: *django
+    deploy:
+      replicas: 1    
+    command: celery flower --app=config.celery_app  --broker="${CELERY_BROKER_URL}" --basic_auth="admin:!!!SET CELERY_FLOWER_PASSWORD!!!" --url_prefix=flower!!!SET DJANGO_ADMIN_URL!!!
+    {%- if cookiecutter.use_traefik == 'y' %}
+    ports:
+      - "0.0.0.0:5555:5555"
+    {%- endif %}
+    healthcheck:
+      disable: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flower.rule=Host(`{{cookiecutter.domain}}`) && PathPrefix(`/flower!!!SET DJANGO_ADMIN_URL!!!`)"
+      - "traefik.http.routers.flower.entrypoints=web"
+      - "traefik.http.services.flower.loadbalancer.server.port=5555"    
+
+  {%- if cookiecutter.use_waautomate == 'y' %}
+
+  waautomate1:
+    image: dudanogueira/waautomate:latest
+    command: npx @open-wa/wa-automate --ev "http://tasks.rocketconnect:5000/connector/0696DBBDDBA5435682CA/" --no-kill-on-logout
+    restart: unless-stopped
+    volumes:
+      - production_waautomate_data:/usr/src/app/session_data
+      - ./instances/instance1.json:/usr/src/app/cli.config.json
+    #extra_hosts:
+    #  - "rocketconnect:rocketconnect.docker"
+    depends_on:
+      - browser
+    ports:
+      - "8001:8002"
+
+  browser:
+      image: browserless/chrome:1.45-chrome-stable
+      hostname: browser
+      ports:
+        - "3010:3000"
+      deploy:
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 10s
+        restart_policy:
+          condition: on-failure
+      environment:
+        CONNECTION_TIMEOUT: -1
+        KEEP_ALIVE: 'true'
+        WORKSPACE_EXPIRE_DAYS: 1
+        ENABLE_CORS: 'true'
+        CHROME_REFRESH_TIME: 86400000
+        DEFAULT_BLOCK_ADS: 'true'
+        FUNCTION_ENABLE_INCOGNITO_MODE: 'true'
+        ENABLE_XVBF: 'true'
+        CHROME_PATH: '/usr/bin/google-chrome'
+        USE_CHROME_STABLE: 'true'
+        NODE_ENV: 'production'
+  {%- endif %}
+
+  {%- if cookiecutter.include_rocketchat == 'y' %}
+
+  rocketchat:
+    image: rocketchat/rocket.chat:latest
+    command: >
+      bash -c
+        "for i in `seq 1 30`; do
+          node main.js &&
+          s=$$? && break || s=$$?;
+          echo \"Tried $$i times. Waiting 5 secs...\";
+          sleep 5;
+        done; (exit $$s)"
+    restart: unless-stopped
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - PORT=3000
+      - ROOT_URL=http://chat.{{ cookiecutter.domain }}
+      - MONGO_URL=mongodb://mongo:27017/rocketchat
+      - MONGO_OPLOG_URL=mongodb://mongo:27017/local
+      - MAIL_URL=smtp://smtp.email
+    depends_on:
+      - mongo
+    ports:
+      - 3000:3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rocketchat.rule=Host(`chat.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.rocketchat.loadbalancer.server.port=3000"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.rocketchat.entrypoints=websecure"
+      - "traefik.http.routers.rocketchat.tls.certresolver=le"
+      {%- endif %}
+
+  mongo:
+    image: mongo:4.0
+    restart: unless-stopped
+    volumes:
+     - ./data/db:/data/db
+     #- ./data/dump:/dump
+    command: mongod --smallfiles --oplogSize 128 --replSet rs0 --storageEngine=mmapv1
+    labels:
+      - "traefik.enable=false"
+
+  # this container's job is just run the command to initialize the replica set.
+  # it will run the command and remove himself (it will not stay running)
+  mongo-init-replica:
+    image: mongo:4.0
+    command: >
+      bash -c
+        "for i in `seq 1 30`; do
+          mongo mongo/rocketchat --eval \"
+            rs.initiate({
+              _id: 'rs0',
+              members: [ { _id: 0, host: 'localhost:27017' } ]})\" &&
+          s=$$? && break || s=$$?;
+          echo \"Tried $$i times. Waiting 5 secs...\";
+          sleep 5;
+        done; (exit $$s)"
+    depends_on:
+      - mongo
+
+  {%- endif %}
+
+  {%- if cookiecutter.use_traefik == 'y' %}
+
+  traefik:
+    image: "traefik:v2.4"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+  {%- endif %}

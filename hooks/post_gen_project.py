@@ -68,20 +68,34 @@ def main():
         using_digits=True,
         using_ascii_letters=True,
     )
-    set_flag(
+    DJANGO_ADMIN_URL = set_flag(
         compose_file,
         "!!!SET DJANGO_ADMIN_URL!!!",
         length=5,
         using_digits=True,
         using_ascii_letters=True,
     )
-    set_flag(
+    master_admin_password = set_flag(
         compose_file,
-        "!!!SET CELERY_FLOWER_PASSWORD!!!",
-        length=5,
+        "!!!SET MASTER_ADMIN_PASSWORD!!!",
+        length=10,
         using_digits=True,
         using_ascii_letters=True,
     )
+    print("Master User/Password:  admin/{0}".format(master_admin_password))
+    
+    print("Use it at: http://{{ cookiecutter.domain}}/admin"+DJANGO_ADMIN_URL)
+    print("Use it at: http://{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL)
+
+    include_rocketchat = '{{ cookiecutter.include_rocketchat}}'
+    if include_rocketchat == "y":
+        print("Use it at: http://chat.{{ cookiecutter.domain}}")
+
+    include_metabase = '{{ cookiecutter.include_metabase}}'
+    if include_metabase == "y":
+        print("Use it at: http://metabase.{{ cookiecutter.domain}}")
+
+
     set_flag(
         compose_file,
         "!!!SET POSTGRES_USER!!!",

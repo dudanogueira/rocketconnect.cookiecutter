@@ -1,11 +1,5 @@
 version: '3'
 
-volumes:
-  production_postgres_data: {}
-  {%- if cookiecutter.use_waautomate == 'y' %}
-  production_waautomate_data: {}
-  {%- endif %}
-
 services:
   rocketconnect: &django
     image: dudanogueira/rocket.connect:master
@@ -13,18 +7,18 @@ services:
       - postgres
       - redis
     environment:
-      DJANGO_DEBUG: "True"
+      DJANGO_DEBUG: "False"
       DJANGO_SETTINGS_MODULE: config.settings.production
       DJANGO_SECRET_KEY: !!!SET DJANGO_SECRET_KEY!!!
       DJANGO_ADMIN_URL: admin!!!SET DJANGO_ADMIN_URL!!!/
-      DJANGO_ALLOWED_HOSTS: "{{cookiecutter.domain}}"
+      DJANGO_ALLOWED_HOSTS: "{{cookiecutter.domain}},localhost"
       DJANGO_SECURE_SSL_REDIRECT: "False"
       DJANGO_SERVER_EMAIL: 
       DJANGO_ACCOUNT_ALLOW_REGISTRATION: "True"
       WEB_CONCURRENCY: 4
       REDIS_URL: redis://redis:6379/0
       CELERY_FLOWER_USER: admin
-      CELERY_FLOWER_PASSWORD: !!!SET CELERY_FLOWER_PASSWORD!!!
+      CELERY_FLOWER_PASSWORD: !!!SET MASTER_ADMIN_PASSWORD!!!
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: rocket_connect
@@ -41,6 +35,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rocketconnect.rule=Host(`{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.rocketconnect.loadbalancer.server.port=5000"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.rocketconnect.entrypoints=websecure"
+      - "traefik.http.routers.rocketconnect.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.rocketconnect.entrypoints=web"
+      {%- endif %}
     deploy:
       replicas: 2
       labels:
@@ -50,6 +54,8 @@ services:
         {%- if cookiecutter.use_letsencrypt == 'y' %}    
         - "traefik.http.routers.rocketconnect.entrypoints=websecure"
         - "traefik.http.routers.rocketconnect.tls.certresolver=le"
+        {%- else %}
+        - "traefik.http.routers.rocketconnect.entrypoints=web"
         {%- endif %}
     command: /start
     {%- if cookiecutter.use_traefik == 'y' %}
@@ -60,13 +66,14 @@ services:
   postgres:
     image: postgres
     volumes:
-      - production_postgres_data:/var/lib/postgresql/data:Z
+      - ./data/postgres_db:/var/lib/postgresql/data:Z
+      - ./pg_init_scripts:/docker-entrypoint-initdb.d/
     deploy:
       mode: global
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DB: rocket_connect
+      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.include_metabase == 'y' %},metabase{%-endif%}
       POSTGRES_USER: !!!SET POSTGRES_USER!!!
       POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
 
@@ -81,6 +88,7 @@ services:
       replicas: 1    
     command: /start-celeryworker
     ports: []
+    labels: []
     healthcheck:
       disable: true
 
@@ -90,6 +98,7 @@ services:
       replicas: 1    
     command: /start-celerybeat
     ports: []
+    labels: []
     healthcheck:
       disable: true
 
@@ -97,7 +106,7 @@ services:
     <<: *django
     deploy:
       replicas: 1    
-    command: celery flower --app=config.celery_app  --broker="${CELERY_BROKER_URL}" --basic_auth="admin:!!!SET CELERY_FLOWER_PASSWORD!!!" --url_prefix=flower!!!SET DJANGO_ADMIN_URL!!!
+    command: celery flower --app=config.celery_app  --broker="${CELERY_BROKER_URL}" --basic_auth="admin:!!!SET MASTER_ADMIN_PASSWORD!!!" --url_prefix=flower!!!SET DJANGO_ADMIN_URL!!!
     {%- if cookiecutter.use_traefik == 'y' %}
     ports:
       - "0.0.0.0:5555:5555"
@@ -106,9 +115,15 @@ services:
       disable: true
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.flower.rule=Host(`{{cookiecutter.domain}}`) && PathPrefix(`/flower!!!SET DJANGO_ADMIN_URL!!!`)"
+      - "traefik.http.routers.flower.rule=PathPrefix(`/flower!!!SET DJANGO_ADMIN_URL!!!`)"
       - "traefik.http.routers.flower.entrypoints=web"
-      - "traefik.http.services.flower.loadbalancer.server.port=5555"    
+      - "traefik.http.services.flower.loadbalancer.server.port=5555"
+      # Add trailing slash to /flower!!!SET DJANGO_ADMIN_URL!!! path
+      # https://community.traefik.io/t/middleware-to-add-the-if-needed/1895/4
+      - traefik.http.middlewares.flower-strip-slash.redirectregex.regex=(^.*\/flower!!!SET DJANGO_ADMIN_URL!!!$$)
+      - traefik.http.middlewares.flower-strip-slash.redirectregex.replacement=$$1/
+      - traefik.http.middlewares.flower-strip-slash.redirectregex.permanent=false
+      - traefik.http.routers.flower.middlewares=flower-strip-slash    
 
   {%- if cookiecutter.use_waautomate == 'y' %}
 
@@ -117,7 +132,7 @@ services:
     command: npx @open-wa/wa-automate --ev "http://tasks.rocketconnect:5000/connector/0696DBBDDBA5435682CA/" --no-kill-on-logout
     restart: unless-stopped
     volumes:
-      - production_waautomate_data:/usr/src/app/session_data
+      - ./data/waautomate_session/:/usr/src/app/session_data
       - ./instances/instance1.json:/usr/src/app/cli.config.json
     #extra_hosts:
     #  - "rocketconnect:rocketconnect.docker"
@@ -166,13 +181,16 @@ services:
         done; (exit $$s)"
     restart: unless-stopped
     volumes:
-      - ./uploads:/app/uploads
+      - ./data/rocketchat_uploads:/app/uploads
     environment:
       - PORT=3000
       - ROOT_URL=http://chat.{{ cookiecutter.domain }}
       - MONGO_URL=mongodb://mongo:27017/rocketchat
       - MONGO_OPLOG_URL=mongodb://mongo:27017/local
       - MAIL_URL=smtp://smtp.email
+      - OVERWRITE_SETTING_Show_Setup_Wizard=completed
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASS=!!!SET MASTER_ADMIN_PASSWORD!!!
     depends_on:
       - mongo
     ports:
@@ -190,8 +208,8 @@ services:
     image: mongo:4.0
     restart: unless-stopped
     volumes:
-     - ./data/db:/data/db
-     #- ./data/dump:/dump
+     - ./data/rocketchat_db:/data/db
+     - ./data/rocketchat_dump/dump:/dump
     command: mongod --smallfiles --oplogSize 128 --replSet rs0 --storageEngine=mmapv1
     labels:
       - "traefik.enable=false"
@@ -220,7 +238,6 @@ services:
 
   traefik:
     image: "traefik:v2.4"
-    container_name: "traefik"
     command:
       #- "--log.level=DEBUG"
       - "--api.insecure=true"
@@ -232,4 +249,29 @@ services:
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  {%- endif %}
+
+  {%- if cookiecutter.include_metabase == 'y' %}
+  
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - 3001:3000
+    environment: 
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: 5432
+      MB_DB_USER: !!!SET POSTGRES_USER!!!
+      MB_DB_PASS: !!!SET POSTGRES_PASSWORD!!!
+      MB_DB_HOST: postgres
+      MB_SITE_URL: http://metabase.{{ cookiecutter.domain }}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.metabase.rule=Host(`metabase.{{ cookiecutter.domain }}`)"
+      - "traefik.http.routers.metabase.entrypoints=web"
+      - "traefik.http.services.metabase.loadbalancer.server.port=3000"
+    depends_on:
+      - postgres   
+  
   {%- endif %}

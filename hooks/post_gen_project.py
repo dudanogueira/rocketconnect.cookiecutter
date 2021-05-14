@@ -2,8 +2,9 @@ from __future__ import print_function
 
 import os
 import random
-import shutil
 import string
+import base64 
+import hashlib
 
 try:
     # Inspired by
@@ -82,19 +83,47 @@ def main():
         using_digits=True,
         using_ascii_letters=True,
     )
-    print("Master User/Password:  admin/{0}".format(master_admin_password))
+    master_admin_password_pash = set_flag(
+        compose_file,
+        "!!!SET MASTER_ADMIN_PASSWORD_HASH!!!",
+        value = '{SHA}'+base64.b64encode(hashlib.sha1(master_admin_password.encode('utf-8')).digest()).decode()
+    )
     
-    print("Use it at: http://{{ cookiecutter.domain}}/admin"+DJANGO_ADMIN_URL)
-    print("Use it at: http://{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL)
-
-    include_rocketchat = '{{ cookiecutter.include_rocketchat}}'
-    if include_rocketchat == "y":
+    print("")
+    print("####### TAKE NOTE!!!! #######")
+    print("Master User/Password:  admin / {0}".format(master_admin_password))
+    
+    use_rocketchat = '{{ cookiecutter.use_rocketchat}}'
+    if use_rocketchat == "y":
         print("Use it at: http://chat.{{ cookiecutter.domain}}")
 
-    include_metabase = '{{ cookiecutter.include_metabase}}'
-    if include_metabase == "y":
+    use_rocketconnect = '{{ cookiecutter.use_rocketconnect}}'
+    if use_rocketconnect == "y":
+        print("for RocketConnect, run the following commands inside folder")
+        print("docker-compose run --rm rocketconnect python manage.py migrate")
+        print("docker-compose run --rm rocketconnect python manage.py createsuperuser")
+        print("")
+        print("Use the created user at:  http://rc.{{ cookiecutter.domain}}/admin"+DJANGO_ADMIN_URL)
+        print("Use the created user at: http://rc.{{ cookiecutter.domain}}")
+        print("Use the master password at: http://rc.{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL)
+
+    use_metabase = '{{ cookiecutter.use_metabase}}'
+    if use_metabase == "y":
         print("Use it at: http://metabase.{{ cookiecutter.domain}}")
 
+    use_nextcloud = '{{ cookiecutter.use_nextcloud}}'
+    if use_nextcloud == "y":
+        print("Use it at: http://cloud.{{ cookiecutter.domain}}")
+
+    use_odoo = '{{ cookiecutter.use_odoo}}'
+    if use_odoo == "y":
+        print("Use it at: http://erp.{{ cookiecutter.domain}}")
+
+    use_traefik = '{{ cookiecutter.use_traefik}}'
+    if use_traefik == "y":
+        print("Use it at: http://traefik.{{ cookiecutter.domain}}/dashboard/")
+    
+    print("######################")
 
     set_flag(
         compose_file,

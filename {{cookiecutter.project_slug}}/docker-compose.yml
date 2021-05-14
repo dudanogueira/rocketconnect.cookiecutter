@@ -1,6 +1,59 @@
 version: '3'
 
 services:
+
+  {%- if cookiecutter.use_traefik == 'y' %}
+
+  traefik:
+    image: "traefik:v2.4"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      {%- if cookiecutter.use_letsencrypt %}
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.email={{ cookiecutter.email_for_letsencrypt }}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      {%- endif %}
+    ports:
+      - "80:80"
+      {%- if cookiecutter.use_letsencrypt == "y"%}
+      - "443:443"
+      {%- endif %}
+      {%- if cookiecutter.use_letsencrypt != "y"%}
+      - "8080:8080"
+      {%- endif %}
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      {%- if cookiecutter.use_letsencrypt %}
+      - ./data/letsencrypt:/letsencrypt
+      {%- endif %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.lbswarm=true
+      - traefik.http.routers.traefik.rule=Host(`traefik.{{ cookiecutter.domain }}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      - traefik.http.routers.traefik.middlewares=auth
+      - traefik.http.routers.traefik.service=api@internal
+      - traefik.http.services.traefik.loadbalancer.server.port=8080
+      - traefik.http.middlewares.auth.basicauth.users=admin:!!!SET MASTER_ADMIN_PASSWORD_HASH!!!
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.traefik.entrypoints=web"
+      {%- endif %}      
+
+  {%- endif %}
+
+
+  {%- if cookiecutter.use_rocketconnect == 'y' %}
+
   rocketconnect: &django
     image: dudanogueira/rocket.connect:master
     depends_on:
@@ -11,7 +64,7 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.production
       DJANGO_SECRET_KEY: !!!SET DJANGO_SECRET_KEY!!!
       DJANGO_ADMIN_URL: admin!!!SET DJANGO_ADMIN_URL!!!/
-      DJANGO_ALLOWED_HOSTS: "{{cookiecutter.domain}},localhost"
+      DJANGO_ALLOWED_HOSTS: "rc.{{cookiecutter.domain}},localhost"
       DJANGO_SECURE_SSL_REDIRECT: "False"
       DJANGO_SERVER_EMAIL: 
       DJANGO_ACCOUNT_ALLOW_REGISTRATION: "True"
@@ -35,9 +88,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.rocketconnect.rule=Host(`{{ cookiecutter.domain }}`)"
+      - "traefik.http.routers.rocketconnect.rule=Host(`rc.{{ cookiecutter.domain }}`)"
       - "traefik.http.services.rocketconnect.loadbalancer.server.port=5000"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
       - "traefik.http.routers.rocketconnect.entrypoints=websecure"
@@ -45,20 +99,9 @@ services:
       {%- else %}
       - "traefik.http.routers.rocketconnect.entrypoints=web"
       {%- endif %}
-    deploy:
-      replicas: 2
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.rocketconnect.rule=Host(`{{ cookiecutter.domain }}`)"
-        - "traefik.http.services.rocketconnect.loadbalancer.server.port=5000"
-        {%- if cookiecutter.use_letsencrypt == 'y' %}    
-        - "traefik.http.routers.rocketconnect.entrypoints=websecure"
-        - "traefik.http.routers.rocketconnect.tls.certresolver=le"
-        {%- else %}
-        - "traefik.http.routers.rocketconnect.entrypoints=web"
-        {%- endif %}
+    {%- endif %}
     command: /start
-    {%- if cookiecutter.use_traefik == 'y' %}
+    {%- if cookiecutter.use_traefik != 'y' %}
     ports:
      - "5000:5000"
     {%- endif %}
@@ -67,13 +110,13 @@ services:
     image: postgres
     volumes:
       - ./data/postgres_db:/var/lib/postgresql/data:Z
-      - ./pg_init_scripts:/docker-entrypoint-initdb.d/
+      - ./scripts/postgres/:/docker-entrypoint-initdb.d/
     deploy:
       mode: global
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.include_metabase == 'y' %},metabase{%-endif%}
+      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.use_metabase == 'y' %},metabase{%-endif%}{%- if cookiecutter.use_nextcloud == 'y' %},nextcloud{%-endif%}{%- if cookiecutter.use_odoo == 'y' %},odoo{%-endif%}
       POSTGRES_USER: !!!SET POSTGRES_USER!!!
       POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
 
@@ -113,9 +156,10 @@ services:
     {%- endif %}
     healthcheck:
       disable: true
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.flower.rule=PathPrefix(`/flower!!!SET DJANGO_ADMIN_URL!!!`)"
+      - "traefik.http.routers.flower.rule=Host(`rc.{{ cookiecutter.domain }}`) && PathPrefix(`/flower!!!SET DJANGO_ADMIN_URL!!!`)"
       - "traefik.http.routers.flower.entrypoints=web"
       - "traefik.http.services.flower.loadbalancer.server.port=5555"
       # Add trailing slash to /flower!!!SET DJANGO_ADMIN_URL!!! path
@@ -124,7 +168,9 @@ services:
       - traefik.http.middlewares.flower-strip-slash.redirectregex.replacement=$$1/
       - traefik.http.middlewares.flower-strip-slash.redirectregex.permanent=false
       - traefik.http.routers.flower.middlewares=flower-strip-slash    
-
+    {%- endif %}
+  {%- endif %}
+      
   {%- if cookiecutter.use_waautomate == 'y' %}
 
   waautomate1:
@@ -165,9 +211,10 @@ services:
         CHROME_PATH: '/usr/bin/google-chrome'
         USE_CHROME_STABLE: 'true'
         NODE_ENV: 'production'
+  
   {%- endif %}
 
-  {%- if cookiecutter.include_rocketchat == 'y' %}
+  {%- if cookiecutter.use_rocketchat == 'y' %}
 
   rocketchat:
     image: rocketchat/rocket.chat:latest
@@ -193,8 +240,11 @@ services:
       - ADMIN_PASS=!!!SET MASTER_ADMIN_PASSWORD!!!
     depends_on:
       - mongo
+    {%- if cookiecutter.use_traefik != 'y' %}
     ports:
-      - 3000:3000
+       - "3000:3000"
+    {%- endif %}
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.rocketchat.rule=Host(`chat.{{ cookiecutter.domain }}`)"
@@ -202,8 +252,11 @@ services:
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
       - "traefik.http.routers.rocketchat.entrypoints=websecure"
       - "traefik.http.routers.rocketchat.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.rocketchat.entrypoints=web"
       {%- endif %}
-
+    {%- endif %}
+  
   mongo:
     image: mongo:4.0
     restart: unless-stopped
@@ -234,25 +287,33 @@ services:
 
   {%- endif %}
 
-  {%- if cookiecutter.use_traefik == 'y' %}
+  {%- if cookiecutter.use_phpweb == 'y' %}
 
-  traefik:
-    image: "traefik:v2.4"
-    command:
-      #- "--log.level=DEBUG"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
+  apache:
+    image: 'php:apache'
+    {%- if cookiecutter.use_traefik != 'y' %}
     ports:
-      - "80:80"
-      - "8080:8080"
+       - "80:80"
+    {%- endif %}
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - ./site:/var/www/html
+      - ./confs/apache/additional.conf:/etc/apache2/conf-enabled/additional.conf
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.apache.rule=Host(`{{ cookiecutter.domain }}`) || Host(`www.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.apache.loadbalancer.server.port=80"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.apache.entrypoints=websecure"
+      - "traefik.http.routers.apache.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.apache.entrypoints=web"
+      {%- endif %}
+    {%- endif %}
 
   {%- endif %}
 
-  {%- if cookiecutter.include_metabase == 'y' %}
+  {%- if cookiecutter.use_metabase == 'y' %}
   
   metabase:
     image: metabase/metabase:latest
@@ -266,12 +327,87 @@ services:
       MB_DB_PASS: !!!SET POSTGRES_PASSWORD!!!
       MB_DB_HOST: postgres
       MB_SITE_URL: http://metabase.{{ cookiecutter.domain }}
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.metabase.rule=Host(`metabase.{{ cookiecutter.domain }}`)"
-      - "traefik.http.routers.metabase.entrypoints=web"
       - "traefik.http.services.metabase.loadbalancer.server.port=3000"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.metabase.entrypoints=websecure"
+      - "traefik.http.routers.metabase.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.metabase.entrypoints=web"
+      {%- endif %}
+    {%- endif %}
     depends_on:
       - postgres   
   
+  {%- endif %}
+
+  {%- if cookiecutter.use_nextcloud == 'y' %}
+
+  nextcloud:
+    image: nextcloud
+    restart: always
+    ports:
+      - 8081:80
+    links:
+      - postgres
+    volumes:
+      - ./data/nextcloud_data:/var/www/html
+      - ./scripts/wait-for-it.sh:/wait-for-it.sh
+    environment:
+      - POSTGRES_HOST=postgres # service name for postgres as assigned by Docker
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=!!!SET POSTGRES_USER!!! # will access postgres over 5432
+      - POSTGRES_PASSWORD=!!!SET POSTGRES_PASSWORD!!!
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=!!!SET MASTER_ADMIN_PASSWORD!!!
+      - NEXTCLOUD_TRUSTED_DOMAINS= localhost cloud.{{ cookiecutter.domain }}
+      # - REDIS_HOST
+      # - REDIS_HOST_PORT
+      # - REDIS_HOST_PASSWORD
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`cloud.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.nextcloud.entrypoints=web"
+      {%- endif %}
+    {%- endif %}
+    #entrypoint: ["/wait-for-it.sh", "postgres:5432", "--", "apache2-foreground"]
+  {%- endif %}
+
+  {%- if cookiecutter.use_odoo == 'y' %}
+
+  odoo:
+    image: odoo:14.0
+    depends_on:
+      - postgres
+    ports:
+      - "8069:8069"
+    volumes:
+      - ./data/odoo/data:/var/lib/odoo
+      - ./data/odoo/addons:/mnt/extra-addons      
+    environment:
+    - HOST=postgres
+    - USER=!!!SET POSTGRES_USER!!!
+    - PASSWORD=!!!SET POSTGRES_PASSWORD!!!
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.odoo.rule=Host(`erp.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.odoo.loadbalancer.server.port=80"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.odoo.entrypoints=websecure"
+      - "traefik.http.routers.odoo.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.odoo.entrypoints=web"
+      {%- endif %}
+    {%- endif %}
+
   {%- endif %}

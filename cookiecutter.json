@@ -2,6 +2,7 @@
   "project_name": "My Company",
   "project_slug": "{{ cookiecutter.project_name.lower()|replace(' ', '')|replace('-', '_')|replace('.', '_')|trim() }}",
   "domain": "{{cookiecutter.project_slug}}.localhost",
+  "use_portainer": "y",
   "use_traefik": "y",
   "use_letsencrypt": "y",
   "add_traefik_labels": "y",

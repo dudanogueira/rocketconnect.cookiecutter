@@ -51,6 +51,32 @@ services:
 
   {%- endif %}
 
+  {%- if cookiecutter.use_portainer == 'y' %}
+
+  portainer:
+    image: portainer/portainer
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    ports:
+      - 9000:9000
+      - 8000:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer:/data
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-portainer.rule=Host(`portainer.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-portainer.loadbalancer.server.port=9000"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-portainer.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-portainer.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-portainer.entrypoints=web"
+      {%- endif %}
+    {%- endif %}
+  {%- endif %}
+
 
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
@@ -91,13 +117,13 @@ services:
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.rocketconnect.rule=Host(`rc.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.rocketconnect.loadbalancer.server.port=5000"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketconnect.rule=Host(`rc.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-rocketconnect.loadbalancer.server.port=5000"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.rocketconnect.entrypoints=websecure"
-      - "traefik.http.routers.rocketconnect.tls.certresolver=le"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketconnect.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketconnect.tls.certresolver=le"
       {%- else %}
-      - "traefik.http.routers.rocketconnect.entrypoints=web"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketconnect.entrypoints=web"
       {%- endif %}
     {%- endif %}
     command: /start
@@ -159,15 +185,15 @@ services:
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.flower.rule=Host(`rc.{{ cookiecutter.domain }}`) && PathPrefix(`/flower!!!SET DJANGO_ADMIN_URL!!!`)"
-      - "traefik.http.routers.flower.entrypoints=web"
-      - "traefik.http.services.flower.loadbalancer.server.port=5555"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-flower.rule=Host(`rc.{{ cookiecutter.domain }}`) && PathPrefix(`/flower!!!SET DJANGO_ADMIN_URL!!!`)"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-flower.entrypoints=web"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-flower.loadbalancer.server.port=5555"
       # Add trailing slash to /flower!!!SET DJANGO_ADMIN_URL!!! path
       # https://community.traefik.io/t/middleware-to-add-the-if-needed/1895/4
-      - traefik.http.middlewares.flower-strip-slash.redirectregex.regex=(^.*\/flower!!!SET DJANGO_ADMIN_URL!!!$$)
-      - traefik.http.middlewares.flower-strip-slash.redirectregex.replacement=$$1/
-      - traefik.http.middlewares.flower-strip-slash.redirectregex.permanent=false
-      - traefik.http.routers.flower.middlewares=flower-strip-slash    
+      - traefik.http.middlewares.{{ cookiecutter.project_slug }}-flower-strip-slash.redirectregex.regex=(^.*\/flower!!!SET DJANGO_ADMIN_URL!!!$$)
+      - traefik.http.middlewares.{{ cookiecutter.project_slug }}-flower-strip-slash.redirectregex.replacement=$$1/
+      - traefik.http.middlewares.{{ cookiecutter.project_slug }}-flower-strip-slash.redirectregex.permanent=false
+      - traefik.http.routers.{{ cookiecutter.project_slug }}-flower.middlewares=flower-strip-slash    
     {%- endif %}
   {%- endif %}
       
@@ -247,13 +273,13 @@ services:
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.rocketchat.rule=Host(`chat.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.rocketchat.loadbalancer.server.port=3000"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat.rule=Host(`chat.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-rocketchat.loadbalancer.server.port=3000"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.rocketchat.entrypoints=websecure"
-      - "traefik.http.routers.rocketchat.tls.certresolver=le"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat.tls.certresolver=le"
       {%- else %}
-      - "traefik.http.routers.rocketchat.entrypoints=web"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat.entrypoints=web"
       {%- endif %}
     {%- endif %}
   
@@ -301,13 +327,13 @@ services:
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.apache.rule=Host(`{{ cookiecutter.domain }}`) || Host(`www.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.apache.loadbalancer.server.port=80"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.rule=Host(`{{ cookiecutter.domain }}`) || Host(`www.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-apache.loadbalancer.server.port=80"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.apache.entrypoints=websecure"
-      - "traefik.http.routers.apache.tls.certresolver=le"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.tls.certresolver=le"
       {%- else %}
-      - "traefik.http.routers.apache.entrypoints=web"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.entrypoints=web"
       {%- endif %}
     {%- endif %}
 
@@ -330,13 +356,13 @@ services:
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.metabase.rule=Host(`metabase.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.metabase.loadbalancer.server.port=3000"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.rule=Host(`metabase.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-metabase.loadbalancer.server.port=3000"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.metabase.entrypoints=websecure"
-      - "traefik.http.routers.metabase.tls.certresolver=le"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.tls.certresolver=le"
       {%- else %}
-      - "traefik.http.routers.metabase.entrypoints=web"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.entrypoints=web"
       {%- endif %}
     {%- endif %}
     depends_on:
@@ -370,13 +396,13 @@ services:
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.rule=Host(`cloud.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.rule=Host(`cloud.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-nextcloud.loadbalancer.server.port=80"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.nextcloud.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud.tls.certresolver=le"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.tls.certresolver=le"
       {%- else %}
-      - "traefik.http.routers.nextcloud.entrypoints=web"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.entrypoints=web"
       {%- endif %}
     {%- endif %}
     #entrypoint: ["/wait-for-it.sh", "postgres:5432", "--", "apache2-foreground"]
@@ -400,13 +426,13 @@ services:
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.odoo.rule=Host(`erp.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.odoo.loadbalancer.server.port=80"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.rule=Host(`erp.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-odoo.loadbalancer.server.port=80"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.odoo.entrypoints=websecure"
-      - "traefik.http.routers.odoo.tls.certresolver=le"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.tls.certresolver=le"
       {%- else %}
-      - "traefik.http.routers.odoo.entrypoints=web"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.entrypoints=web"
       {%- endif %}
     {%- endif %}
 

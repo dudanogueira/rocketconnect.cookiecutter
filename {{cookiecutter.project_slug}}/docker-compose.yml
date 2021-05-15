@@ -232,7 +232,7 @@ services:
       - traefik.http.middlewares.{{ cookiecutter.project_slug }}-flower-strip-slash.redirectregex.regex=(^.*\/flower!!!SET DJANGO_ADMIN_URL!!!$$)
       - traefik.http.middlewares.{{ cookiecutter.project_slug }}-flower-strip-slash.redirectregex.replacement=$$1/
       - traefik.http.middlewares.{{ cookiecutter.project_slug }}-flower-strip-slash.redirectregex.permanent=false
-      - traefik.http.routers.{{ cookiecutter.project_slug }}-flower.middlewares=flower-strip-slash    
+      - traefik.http.routers.{{ cookiecutter.project_slug }}-flower.middlewares={{ cookiecutter.project_slug }}-flower-strip-slash    
     {%- endif %}
   {%- endif %}
       
@@ -305,6 +305,7 @@ services:
       - ADMIN_PASS=!!!SET MASTER_ADMIN_PASSWORD!!!
     depends_on:
       - mongo
+      - mongo-init-replica
     {%- if cookiecutter.use_traefik != 'y' %}
     ports:
        - "3000:3000"

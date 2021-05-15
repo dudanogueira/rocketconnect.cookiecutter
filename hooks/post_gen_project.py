@@ -3,7 +3,7 @@ from __future__ import print_function
 import os
 import random
 import string
-import base64 
+import base64
 import hashlib
 
 try:
@@ -13,6 +13,7 @@ try:
     using_sysrandom = True
 except NotImplementedError:
     using_sysrandom = False
+
 
 def generate_random_string(
     length, using_digits=False, using_ascii_letters=False, using_punctuation=False
@@ -60,6 +61,41 @@ def set_flag(file_path, flag, value=None, formatted=None, *args, **kwargs):
 
     return value
 
+
+management_message = '''
+# MANAGEMENT AND BACKUP/RESTORE
+
+# now, you should run the base stack:
+cd {{ cookiecutter.project_slug}}
+docker-compose up -d traefik postgres
+
+# RUN service
+docker-compose up -d rocketchat
+docker-compose up -d rocketconnect
+docker-compose up -d metabase
+docker-compose up -d nextcloud
+docker-compose up -d ....
+
+# RUN all services
+docker-compose up -d
+
+# LOGS watch logs
+docker-compose logs -f --tail=10
+docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
+
+# LIST all VOLUMES used in this project
+docker volume ls | grep {{ cookiecutter.project_slug}}_
+
+# STOP all CONTAINERS for this project
+docker-compose stop
+
+# REMOVE all containers
+docker-compose rm
+
+# REMOVE all VOLUMES used in this project
+docker volume rm $(docker volume ls | grep {{ cookiecutter.project_slug}}_ | awk '{print $2}')
+'''
+
 def main():
     compose_file = os.path.join("docker-compose.yml")
     django_secret_key = set_flag(
@@ -86,38 +122,56 @@ def main():
     master_admin_password_pash = set_flag(
         compose_file,
         "!!!SET MASTER_ADMIN_PASSWORD_HASH!!!",
-        value = '{SHA}'+base64.b64encode(hashlib.sha1(master_admin_password.encode('utf-8')).digest()).decode()
+        value='{SHA}'+base64.b64encode(hashlib.sha1(
+            master_admin_password.encode('utf-8')).digest()).decode()
     )
-    
+    use_traefik = '{{ cookiecutter.use_traefik}}'
+
     print("")
     print("####### TAKE NOTE!!!! #######")
+    print("")
     print("Master User/Password:  admin / {0}".format(master_admin_password))
-    
-    use_traefik = '{{ cookiecutter.use_traefik}}'
+    print("")
+
+
+    use_phpweb = '{{ cookiecutter.use_phpweb}}'
+
+    use_phpweb = '{{ cookiecutter.use_phpweb}}'
+    if use_phpweb == "y":
+        print("#")
+        print("# Website at: http://www.{{ cookiecutter.domain}}")
+        print("#")
+
     if use_traefik == "y":
-        print("Use the master password at: http://traefik.{{ cookiecutter.domain}}/dashboard/")
+        print(
+            "# Use the master password at: http://traefik.{{ cookiecutter.domain}}/dashboard/")
 
     use_rocketchat = '{{ cookiecutter.use_rocketchat}}'
     if use_rocketchat == "y":
-        print("Use it at: http://chat.{{ cookiecutter.domain}}")
+        print(
+            "# Use the master password at: http://chat.{{ cookiecutter.domain}}")
 
     use_rocketconnect = '{{ cookiecutter.use_rocketconnect}}'
     if use_rocketconnect == "y":
-        print("for RocketConnect, run the following commands inside deploy folder")
+        print("# RocketConnect, run the following commands inside deploy folder")
         print("docker-compose run --rm rocketconnect python manage.py migrate")
         print("docker-compose run --rm rocketconnect python manage.py createsuperuser")
-        print("")
-        print("Use the created user at:  http://rc.{{ cookiecutter.domain}}/admin"+DJANGO_ADMIN_URL)
-        print("Use the created user at: http://rc.{{ cookiecutter.domain}}")
-        print("Use the master password at: http://rc.{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL)
+        print("#")
+        print(
+            "# Use the created user at:  http://rc.{{ cookiecutter.domain}}/admin"+DJANGO_ADMIN_URL)
+        print("# Use the created user at: http://rc.{{ cookiecutter.domain}}")
+        print(
+            "# Use the master password at: http://rc.{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL)
 
     use_metabase = '{{ cookiecutter.use_metabase}}'
     if use_metabase == "y":
-        print("Configure a new user at: http://metabase.{{ cookiecutter.domain}}")
+        print(
+            "Configure a new user at: http://metabase.{{ cookiecutter.domain}}")
 
     use_nextcloud = '{{ cookiecutter.use_nextcloud}}'
     if use_nextcloud == "y":
-        print("Use the master password at: http://cloud.{{ cookiecutter.domain}}")
+        print(
+            "Use the master password at: http://cloud.{{ cookiecutter.domain}}")
 
     use_odoo = '{{ cookiecutter.use_odoo}}'
     if use_odoo == "y":
@@ -133,6 +187,8 @@ def main():
 
     print("######################")
 
+    print(management_message)
+
     set_flag(
         compose_file,
         "!!!SET POSTGRES_USER!!!",
@@ -147,6 +203,7 @@ def main():
         using_digits=True,
         using_ascii_letters=True,
     )
+
 
 if __name__ == "__main__":
     main()

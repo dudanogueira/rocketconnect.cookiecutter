@@ -437,3 +437,67 @@ services:
     {%- endif %}
 
   {%- endif %}
+
+
+  {%- if cookiecutter.use_mautic == 'y' %}
+  mauticdb:
+    image: powertic/percona-docker
+    container_name: mauticdb
+    volumes:
+      - ./data/mautic/db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=!!!SET POSTGRES_PASSWORD!!!
+    command:
+      --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+
+  mautic:
+    image: mautic/mautic:latest
+    container_name: mautic
+    depends_on:
+      - mauticdb
+    # ports:
+    #   - 8080:80
+    volumes:
+      - ./data/mautic/data:/var/www/html
+    environment:
+      - MAUTIC_DB_HOST=mauticdb
+      - MYSQL_PORT_3306_TCP=3306
+      - MAUTIC_DB_USER=root
+      - MAUTIC_DB_PASSWORD=!!!SET POSTGRES_PASSWORD!!!
+      - MAUTIC_DB_NAME=mautic
+      - MAUTIC_RUN_CRON_JOBS=true
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.rule=Host(`m.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-mautic.loadbalancer.server.port=80"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.entrypoints=web"
+      {%- endif %}
+    {%- endif %}      
+  {%- endif %}
+
+  {%- if cookiecutter.limesurvey == 'y' %}
+  
+  limesurvey:
+    volumes:
+      - ./data/limesurvey/db:/var/lib/mysql
+      - ./data/limesurvey/uploads:/app/upload
+    image:
+      crramirez/limesurvey:latest
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.rule=Host(`p.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-limesurvey.loadbalancer.server.port=80"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.entrypoints=web"
+      {%- endif %}
+    {%- endif %}            
+  {%- endif %}

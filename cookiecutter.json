@@ -13,5 +13,7 @@
   "use_waautomate": "y",
   "use_metabase": "y",
   "use_nextcloud": "y",
-  "use_odoo": "y"
+  "use_odoo": "y",
+  "use_mautic": "y",
+  "use_limesurvey": "y"
 }

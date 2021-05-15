@@ -93,13 +93,17 @@ def main():
     print("####### TAKE NOTE!!!! #######")
     print("Master User/Password:  admin / {0}".format(master_admin_password))
     
+    use_traefik = '{{ cookiecutter.use_traefik}}'
+    if use_traefik == "y":
+        print("Use the master password at: http://traefik.{{ cookiecutter.domain}}/dashboard/")
+
     use_rocketchat = '{{ cookiecutter.use_rocketchat}}'
     if use_rocketchat == "y":
         print("Use it at: http://chat.{{ cookiecutter.domain}}")
 
     use_rocketconnect = '{{ cookiecutter.use_rocketconnect}}'
     if use_rocketconnect == "y":
-        print("for RocketConnect, run the following commands inside folder")
+        print("for RocketConnect, run the following commands inside deploy folder")
         print("docker-compose run --rm rocketconnect python manage.py migrate")
         print("docker-compose run --rm rocketconnect python manage.py createsuperuser")
         print("")
@@ -109,20 +113,24 @@ def main():
 
     use_metabase = '{{ cookiecutter.use_metabase}}'
     if use_metabase == "y":
-        print("Use it at: http://metabase.{{ cookiecutter.domain}}")
+        print("Configure a new user at: http://metabase.{{ cookiecutter.domain}}")
 
     use_nextcloud = '{{ cookiecutter.use_nextcloud}}'
     if use_nextcloud == "y":
-        print("Use it at: http://cloud.{{ cookiecutter.domain}}")
+        print("Use the master password at: http://cloud.{{ cookiecutter.domain}}")
 
     use_odoo = '{{ cookiecutter.use_odoo}}'
     if use_odoo == "y":
-        print("Use it at: http://erp.{{ cookiecutter.domain}}")
+        print("Configure a new user at: http://odoo.{{ cookiecutter.domain}}")
 
-    use_traefik = '{{ cookiecutter.use_traefik}}'
-    if use_traefik == "y":
-        print("Use it at: http://traefik.{{ cookiecutter.domain}}/dashboard/")
-    
+    use_mautic = '{{ cookiecutter.use_mautic}}'
+    if use_mautic == "y":
+        print("Configure a new user at: http://m.{{ cookiecutter.domain}}")
+
+    use_glpi = '{{ cookiecutter.use_glpi}}'
+    if use_glpi == "y":
+        print("Configure a new user at: http://glpi.{{ cookiecutter.domain}}")
+
     print("######################")
 
     set_flag(

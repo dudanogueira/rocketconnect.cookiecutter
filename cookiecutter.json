@@ -15,5 +15,6 @@
   "use_nextcloud": "y",
   "use_odoo": "y",
   "use_mautic": "y",
-  "use_limesurvey": "y"
+  "use_limesurvey": "y",
+  "use_glpi": "y"
 }

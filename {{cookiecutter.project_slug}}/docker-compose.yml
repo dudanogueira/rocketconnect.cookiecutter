@@ -1,5 +1,44 @@
 version: '3'
 
+volumes:
+  postgres_data:
+  {%- if cookiecutter.use_letsencrypt %}
+  traefik_letsencrypt:
+  {%- endif %}
+  {%- if cookiecutter.use_portainer == 'y' %}
+  portainer_data:
+  {%- endif %}
+  {%- if cookiecutter.use_waautomate == 'y' %}
+  waautomate_session_data:
+  {%- endif %}
+  {%- if cookiecutter.use_rocketchat == 'y' %}
+  rocketchat_uploads:
+  rocketchat_db:
+  rocketchat_dump:
+  {%- endif %}
+  {%- if cookiecutter.use_nextcloud == 'y' %}
+  nextcloud_data:
+  {%- endif %}
+  {%- if cookiecutter.use_odoo == 'y' %}
+  odoo_data:
+  odoo_config:
+  odoo_addons:
+  odoo_db:
+  {%- endif %}
+  {%- if cookiecutter.use_mautic == 'y' %}
+  mautic_db:
+  mautic_data:
+  {%- endif %}
+  {%- if cookiecutter.use_limesurvey == 'y' %}
+  limesurvey_db:
+  limesurvey_uploads:
+  {%- endif %}
+  {%- if cookiecutter.use_glpi == 'y' %}
+  glpi_db:
+  glpi_files:
+  glpi_plugins:
+  {%- endif %}
+
 services:
 
   {%- if cookiecutter.use_traefik == 'y' %}
@@ -32,7 +71,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       {%- if cookiecutter.use_letsencrypt %}
-      - ./data/letsencrypt:/letsencrypt
+      - traefik_letsencrypt:/letsencrypt
       {%- endif %}
     labels:
       - traefik.enable=true
@@ -62,7 +101,7 @@ services:
       - 8000:8000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/portainer:/data
+      - portainer_data:/data
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
@@ -135,14 +174,14 @@ services:
   postgres:
     image: postgres
     volumes:
-      - ./data/postgres_db:/var/lib/postgresql/data:Z
+      - postgres_data:/var/lib/postgresql/data:Z
       - ./scripts/postgres/:/docker-entrypoint-initdb.d/
     deploy:
       mode: global
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.use_metabase == 'y' %},metabase{%-endif%}{%- if cookiecutter.use_nextcloud == 'y' %},nextcloud{%-endif%}{%- if cookiecutter.use_odoo == 'y' %},odoo{%-endif%}
+      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.use_metabase == 'y' %},metabase{%-endif%}{%- if cookiecutter.use_nextcloud == 'y' %},nextcloud{%-endif%}
       POSTGRES_USER: !!!SET POSTGRES_USER!!!
       POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
 
@@ -204,7 +243,7 @@ services:
     command: npx @open-wa/wa-automate --ev "http://tasks.rocketconnect:5000/connector/0696DBBDDBA5435682CA/" --no-kill-on-logout
     restart: unless-stopped
     volumes:
-      - ./data/waautomate_session/:/usr/src/app/session_data
+      - waautomate_session_data:/usr/src/app/session_data
       - ./instances/instance1.json:/usr/src/app/cli.config.json
     #extra_hosts:
     #  - "rocketconnect:rocketconnect.docker"
@@ -254,7 +293,7 @@ services:
         done; (exit $$s)"
     restart: unless-stopped
     volumes:
-      - ./data/rocketchat_uploads:/app/uploads
+      - rocketchat_uploads:/app/uploads
     environment:
       - PORT=3000
       - ROOT_URL=http://chat.{{ cookiecutter.domain }}
@@ -380,8 +419,7 @@ services:
     links:
       - postgres
     volumes:
-      - ./data/nextcloud_data:/var/www/html
-      - ./scripts/wait-for-it.sh:/wait-for-it.sh
+      - nextcloud_data:/var/www/html
     environment:
       - POSTGRES_HOST=postgres # service name for postgres as assigned by Docker
       - POSTGRES_DB=nextcloud
@@ -413,21 +451,18 @@ services:
   odoo:
     image: odoo:14.0
     depends_on:
-      - postgres
-    ports:
-      - "8069:8069"
+      - odoo_db
     volumes:
-      - ./data/odoo/data:/var/lib/odoo
-      - ./data/odoo/addons:/mnt/extra-addons      
-    environment:
-    - HOST=postgres
-    - USER=!!!SET POSTGRES_USER!!!
-    - PASSWORD=!!!SET POSTGRES_PASSWORD!!!
+      - odoo_data:/var/lib/odoo
+      - odoo_config:/etc/odoo
+      - odoo_addons:/mnt/extra-addons
+    links:
+      - odoo_db:db
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.rule=Host(`erp.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-odoo.loadbalancer.server.port=80"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.rule=Host(`odoo.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-odoo.loadbalancer.server.port=8069"
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.entrypoints=websecure"
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.tls.certresolver=le"
@@ -436,15 +471,25 @@ services:
       {%- endif %}
     {%- endif %}
 
+  odoo_db:
+    image: postgres:10
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/odoo/db:/var/lib/postgresql/data/pgdata
+
+
   {%- endif %}
 
 
   {%- if cookiecutter.use_mautic == 'y' %}
   mauticdb:
     image: powertic/percona-docker
-    container_name: mauticdb
     volumes:
-      - ./data/mautic/db:/var/lib/mysql
+      - mautic_db:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=!!!SET POSTGRES_PASSWORD!!!
     command:
@@ -452,13 +497,12 @@ services:
 
   mautic:
     image: mautic/mautic:latest
-    container_name: mautic
     depends_on:
       - mauticdb
     # ports:
     #   - 8080:80
     volumes:
-      - ./data/mautic/data:/var/www/html
+      - mautic_data:/var/www/html
     environment:
       - MAUTIC_DB_HOST=mauticdb
       - MYSQL_PORT_3306_TCP=3306
@@ -480,12 +524,12 @@ services:
     {%- endif %}      
   {%- endif %}
 
-  {%- if cookiecutter.limesurvey == 'y' %}
+  {%- if cookiecutter.use_limesurvey == 'y' %}
   
   limesurvey:
     volumes:
-      - ./data/limesurvey/db:/var/lib/mysql
-      - ./data/limesurvey/uploads:/app/upload
+      - limesurvey_db:/var/lib/mysql
+      - limesurvey_uploads:/app/upload
     image:
       crramirez/limesurvey:latest
     {%- if cookiecutter.add_traefik_labels == 'y' %}
@@ -500,4 +544,50 @@ services:
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.entrypoints=web"
       {%- endif %}
     {%- endif %}            
+  
+  {%- endif %}
+
+  {%- if cookiecutter.use_glpi == 'y' %}
+
+  glpi_db: 
+    image: fametec/glpi:9.5.4-mariadb
+    restart: unless-stopped
+    volumes: 
+      - glpi_db:/var/lib/mysql:rw
+    environment: 
+      MYSQL_DATABASE: glpi
+      MYSQL_USER: glpi-user 
+      MYSQL_PASSWORD: glpi-pass 
+      MYSQL_RANDOM_ROOT_PASSWORD: 1 
+
+  glpi: 
+    image: fametec/glpi:9.5.4
+    restart: unless-stopped
+    volumes: 
+      - glpi_files:/var/www/html/files:rw
+      - glpi_plugins:/var/www/html/plugins:rw
+    environment: 
+      GLPI_LANG: pt_BR
+      MARIADB_HOST: glpi_db
+      MARIADB_PORT: 3306
+      MARIADB_DATABASE: glpi
+      MARIADB_USER: glpi-user
+      MARIADB_PASSWORD: glpi-pass
+      VERSION: "9.5.4"
+      PLUGINS: "all"
+    depends_on: 
+      - glpi_db
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.rule=Host(`glpi.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-glpi.loadbalancer.server.port=80"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.entrypoints=web"
+      {%- endif %}
+    {%- endif %}  
+  
   {%- endif %}

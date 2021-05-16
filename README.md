@@ -3,6 +3,13 @@ Cookie cutter for Rocket.Connect
 
 This is a simple script to define how to deploy our connectings
 
+WARNING!
+======================
+This is an under development structre. Feel free to create an issue or contribute with improvements.
+
+
+Running
+======================
 on a regular, modern linux distro (Tested always on Ubuntu latest LTS), 
 
 issue the folowing commands:
@@ -65,3 +72,9 @@ Select your cookie flavours
     Configure a new user at: http://m.mycompany.com.br
     Configure a new user at: http://glpi.mycompany.com.br
     ######################
+
+Point your domain at it
+===========
+If you deployed at a server with public up, point mycompany.com.br and *.mycompany.com.br to the server ip.
+
+if you are deploying locally, or to test, do not choose lets encript, and set the domain to myclient.localhost.

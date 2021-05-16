@@ -29,7 +29,7 @@ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
 Select your cookie flavours
 ===========
 
-    me@mycompany.com.br:~/dev/v2$ cookiecutter rc_cookiecutter/
+    root@mycompany.com.br:~$ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
     project_name [My Company]: 
     project_slug [mycompany]: 
     domain [mycompany.localhost]: mycompany.com.br

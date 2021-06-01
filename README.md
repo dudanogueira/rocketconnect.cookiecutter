@@ -78,3 +78,24 @@ Point your domain at it
 If you deployed at a server with public up, point mycompany.com.br and *.mycompany.com.br to the server ip.
 
 if you are deploying locally, or to test, do not choose lets encript, and set the domain to myclient.localhost.
+
+RoadMap
+===========
+- Add some more cool open source softwares
+- Use LDAP
+- Optionally Integrate with LDAP
+- Optionally use docker swarm
+- Security Check
+- Call it 1.0
+
+Proposed new open source
+===========
+- Dokuwiki
+- Magento
+- Prestashop
+- Wordpress
+- ELK - Grafana, Prometheus
+- Drupal
+- SuiteCRM
+- Pentaho / Webspoon
+- Orange HRM

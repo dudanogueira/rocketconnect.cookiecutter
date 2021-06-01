@@ -4,6 +4,7 @@
   "domain": "{{cookiecutter.project_slug}}.localhost",
   "use_portainer": "y",
   "use_traefik": "y",
+  "expose_ports": "n",
   "use_letsencrypt": "y",
   "add_traefik_labels": "y",
   "email_for_letsencrypt": "your@email.com",
@@ -16,5 +17,7 @@
   "use_odoo": "y",
   "use_mautic": "y",
   "use_limesurvey": "y",
-  "use_glpi": "y"
+  "use_glpi": "y",
+  "use_moodle": "y",
+  "use_rasax": "y"
 }

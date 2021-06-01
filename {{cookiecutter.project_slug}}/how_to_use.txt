@@ -1,0 +1,49 @@
+# MANAGEMENT AND BACKUP/RESTORE
+
+# enter the project folder
+cd {{ cookiecutter.project_slug}}
+
+{%- if cookiecutter.use_rasax == 'y' %}
+
+# for some reason, rasax requires confs file to be of a specific permission
+sudo chgrp -R root confs/rasax/*.yml && sudo chmod -R 770 confs/rasax/*.yml
+{%- endif %}
+
+# create a public, attachable network:
+docker network create --attachable traefik-public
+
+# Run base containers
+# some containers may encounter problems if postgres is not up
+# lets start them first and wait a little bit for the first run
+docker-compose up -d traefik postgres
+
+# Run other service
+# * after waiting a little bit.
+docker-compose up -d rocketchat
+docker-compose up -d rocketconnect
+docker-compose up -d metabase
+docker-compose up -d nextcloud
+docker-compose up -d ....
+
+# After the initial run, you can start all
+docker-compose up -d
+
+# Or stop all containers
+docker-compose stop
+
+# watch all logs
+docker-compose logs -f --tail=10
+
+# or only a few
+docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
+
+# list all VOLUMES used in this project
+docker volume ls | grep {{ cookiecutter.project_slug}}_
+
+# REMOVE all containers
+docker-compose rm
+
+# REMOVE all VOLUMES used in this project - WARNING!!!
+docker volume rm $(docker volume ls | grep {{ cookiecutter.project_slug}}_ | awk '{print $2}')
+
+'''

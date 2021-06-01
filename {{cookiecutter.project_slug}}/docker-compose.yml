@@ -1,4 +1,12 @@
-version: '3'
+version: '3.4'
+
+# ADMIN MASTER PASSWORD: !!!SET MASTER_ADMIN_PASSWORD!!!
+
+networks:
+  default:
+    external: false
+  traefik-public:
+    external: true
 
 volumes:
   postgres_data:
@@ -38,6 +46,89 @@ volumes:
   glpi_files:
   glpi_plugins:
   {%- endif %}
+  {%- if cookiecutter.use_moodle == 'y' %}
+  moodle_db:
+  moodle_data:
+  {%- endif %}
+  {%- if cookiecutter.use_rasax == 'y' %}
+  rasax_db:
+  {%- endif %}
+
+
+{%- if cookiecutter.use_rasax == 'y' %}
+
+x-database-credentials: &database-credentials
+  DB_HOST: "db"
+  DB_PORT: "5432"
+  DB_USER: "${DB_USER:-admin}"
+  DB_PASSWORD: "${DB_PASSWORD}"
+  DB_LOGIN_DB: "${DB_LOGIN_DB:-rasa}"
+
+x-rabbitmq-credentials: &rabbitmq-credentials
+  RABBITMQ_HOST: "rabbit"
+  RABBITMQ_USERNAME: "user"
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+x-redis-credentials: &redis-credentials
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_DB: "1"
+  REDIS_CACHE_DB: "2"
+  ACCEPTABLE_QUERY_COUNT_NUMBER: "50000"
+  
+x-duckling-credentials: &duckling-credentials
+  RASA_DUCKLING_HTTP_URL: "http://duckling:8000"
+
+x-nginx-host-variables: &nginx-host-variables
+  RASA_X_HOST: "rasa-x:5002"
+  RASA_USER_APP: "app:5055"
+  RASA_PRODUCTION_HOST: "rasa-production:5005"
+
+x-rasax-credentials: &rasax-credentials
+  RASA_X_HOST: "http://rasa-x:5002"
+  RASA_X_USERNAME: ${RASA_X_USERNAME:-admin}
+  RASA_X_PASSWORD: ${RASA_X_PASSWORD:-}
+  RASA_X_TOKEN: ${RASA_X_TOKEN}
+  JWT_SECRET: ${JWT_SECRET}
+  RASA_USER_APP: "http://app:5055"
+  RASA_PRODUCTION_HOST: "http://rasa-production:5005"
+  RASA_WORKER_HOST: "http://rasa-worker:5005"
+  RASA_TOKEN: ${RASA_TOKEN}
+
+x-rasa-credentials: &rasa-credentials
+  <<: *rabbitmq-credentials
+  <<: *rasax-credentials
+  <<: *database-credentials
+  <<: *redis-credentials
+  <<: *duckling-credentials
+  RASA_TOKEN: ${RASA_TOKEN}
+  RASA_MODEL_PULL_INTERVAL: 10
+  RABBITMQ_QUEUE: "rasa_production_events"
+  RASA_TELEMETRY_ENABLED: ${RASA_TELEMETRY_ENABLED:-true}
+
+x-rasa-services: &default-rasa-service
+  restart: always
+  image: "rasa/rasa:${RASA_VERSION}-full"
+  volumes:
+      - ./.config:/.config
+  expose:
+    - "5005"
+  command: >
+    x
+    --no-prompt
+    --production
+    --config-endpoint http://rasa-x:5002/api/config?token=${RASA_X_TOKEN}
+    --port 5005
+    --jwt-method HS256
+    --jwt-secret ${JWT_SECRET}
+    --auth-token '${RASA_TOKEN}'
+    --cors "*"
+  depends_on:
+    - rasa-x
+    - rabbit
+    - redis
+{%- endif %}
 
 services:
 
@@ -51,6 +142,7 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--providers.docker.network=traefik-public"
       {%- if cookiecutter.use_letsencrypt %}
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
@@ -65,9 +157,7 @@ services:
       {%- if cookiecutter.use_letsencrypt == "y"%}
       - "443:443"
       {%- endif %}
-      {%- if cookiecutter.use_letsencrypt != "y"%}
       - "8080:8080"
-      {%- endif %}
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       {%- if cookiecutter.use_letsencrypt %}
@@ -87,18 +177,23 @@ services:
       {%- else %}
       - "traefik.http.routers.traefik.entrypoints=web"
       {%- endif %}      
+    networks:
+      - traefik-public
+  
 
   {%- endif %}
 
   {%- if cookiecutter.use_portainer == 'y' %}
 
   portainer:
-    image: portainer/portainer
+    image: portainer/portainer-ce
     command: -H unix:///var/run/docker.sock
     restart: always
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - 9000:9000
       - 8000:8000
+    {%- endif %}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -114,6 +209,12 @@ services:
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-portainer.entrypoints=web"
       {%- endif %}
     {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+    {%- endif %}
+
+  
   {%- endif %}
 
 
@@ -134,7 +235,7 @@ services:
       DJANGO_SERVER_EMAIL: 
       DJANGO_ACCOUNT_ALLOW_REGISTRATION: "True"
       WEB_CONCURRENCY: 4
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://redis_rocketconnect:6379/0
       CELERY_FLOWER_USER: admin
       CELERY_FLOWER_PASSWORD: !!!SET MASTER_ADMIN_PASSWORD!!!
       POSTGRES_HOST: postgres
@@ -166,9 +267,14 @@ services:
       {%- endif %}
     {%- endif %}
     command: /start
-    {%- if cookiecutter.use_traefik != 'y' %}
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
      - "5000:5000"
+    {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
     {%- endif %}
   
   postgres:
@@ -185,7 +291,7 @@ services:
       POSTGRES_USER: !!!SET POSTGRES_USER!!!
       POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
 
-  redis:
+  redis_rocketconnect:
     image: redis:5.0
     deploy:
       replicas: 1    
@@ -215,9 +321,9 @@ services:
     deploy:
       replicas: 1    
     command: celery flower --app=config.celery_app  --broker="${CELERY_BROKER_URL}" --basic_auth="admin:!!!SET MASTER_ADMIN_PASSWORD!!!" --url_prefix=flower!!!SET DJANGO_ADMIN_URL!!!
-    {%- if cookiecutter.use_traefik == 'y' %}
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
-      - "0.0.0.0:5555:5555"
+      - "5555:5555"
     {%- endif %}
     healthcheck:
       disable: true
@@ -234,6 +340,12 @@ services:
       - traefik.http.middlewares.{{ cookiecutter.project_slug }}-flower-strip-slash.redirectregex.permanent=false
       - traefik.http.routers.{{ cookiecutter.project_slug }}-flower.middlewares={{ cookiecutter.project_slug }}-flower-strip-slash    
     {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}
+
   {%- endif %}
       
   {%- if cookiecutter.use_waautomate == 'y' %}
@@ -245,26 +357,28 @@ services:
     volumes:
       - waautomate_session_data:/usr/src/app/session_data
       - ./instances/instance1.json:/usr/src/app/cli.config.json
-    #extra_hosts:
-    #  - "rocketconnect:rocketconnect.docker"
     depends_on:
       - browser
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - "8001:8002"
-
+    {% endif %}
+    links:
+      - "rocketconnect:tasks.rocketconnect"
+    
   browser:
-      image: browserless/chrome:1.45-chrome-stable
-      hostname: browser
-      ports:
-        - "3010:3000"
-      deploy:
-        replicas: 1
-        update_config:
-          parallelism: 1
-          delay: 10s
-        restart_policy:
-          condition: on-failure
-      environment:
+    image: browserless/chrome:1.45-chrome-stable
+    hostname: browser
+    ports:
+      - "3010:3000"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    environment:
         CONNECTION_TIMEOUT: -1
         KEEP_ALIVE: 'true'
         WORKSPACE_EXPIRE_DAYS: 1
@@ -306,9 +420,9 @@ services:
     depends_on:
       - mongo
       - mongo-init-replica
-    {%- if cookiecutter.use_traefik != 'y' %}
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
-       - "3000:3000"
+      - "3000:3000"
     {%- endif %}
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
@@ -322,7 +436,12 @@ services:
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat.entrypoints=web"
       {%- endif %}
     {%- endif %}
-  
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}
+
   mongo:
     image: mongo:4.0
     restart: unless-stopped
@@ -357,7 +476,7 @@ services:
 
   apache:
     image: 'php:apache'
-    {%- if cookiecutter.use_traefik != 'y' %}
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
        - "80:80"
     {%- endif %}
@@ -376,6 +495,11 @@ services:
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.entrypoints=web"
       {%- endif %}
     {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}
 
   {%- endif %}
 
@@ -383,8 +507,10 @@ services:
   
   metabase:
     image: metabase/metabase:latest
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - 3001:3000
+    {%- endif %}
     environment: 
       MB_DB_TYPE: postgres
       MB_DB_DBNAME: metabase
@@ -407,7 +533,12 @@ services:
     {%- endif %}
     depends_on:
       - postgres   
-  
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}
+
   {%- endif %}
 
   {%- if cookiecutter.use_nextcloud == 'y' %}
@@ -415,8 +546,10 @@ services:
   nextcloud:
     image: nextcloud
     restart: always
+    {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - 8081:80
+    {%- endif %}
     links:
       - postgres
     volumes:
@@ -444,6 +577,11 @@ services:
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.entrypoints=web"
       {%- endif %}
     {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}    
     #entrypoint: ["/wait-for-it.sh", "postgres:5432", "--", "apache2-foreground"]
   {%- endif %}
 
@@ -459,6 +597,10 @@ services:
       - odoo_addons:/mnt/extra-addons
     links:
       - odoo_db:db
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - 8069:8069
+    {%- endif %}
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"
@@ -470,6 +612,11 @@ services:
       {%- else %}
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.entrypoints=web"
       {%- endif %}
+    {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
     {%- endif %}
 
   odoo_db:
@@ -497,11 +644,13 @@ services:
       --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
 
   mautic:
-    image: mautic/mautic:latest
+    image: mautic/mautic:v3
     depends_on:
       - mauticdb
-    # ports:
-    #   - 8080:80
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - 8080:80
+    {%- endif %}
     volumes:
       - mautic_data:/var/www/html
     environment:
@@ -522,7 +671,12 @@ services:
       {%- else %}
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.entrypoints=web"
       {%- endif %}
-    {%- endif %}      
+    {%- endif %}  
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}        
   {%- endif %}
 
   {%- if cookiecutter.use_limesurvey == 'y' %}
@@ -545,7 +699,16 @@ services:
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.entrypoints=web"
       {%- endif %}
     {%- endif %}            
-  
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - 8081:8081
+    {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}
+
   {%- endif %}
 
   {%- if cookiecutter.use_glpi == 'y' %}
@@ -590,5 +753,214 @@ services:
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.entrypoints=web"
       {%- endif %}
     {%- endif %}  
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - 8082:80
+    {%- endif %}  
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}  
+  {%- endif %}
+
+  {%- if cookiecutter.use_moodle == 'y' %}
+
+  moodle_db:
+    image: docker.io/bitnami/mariadb:10.5
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MARIADB_USER=bn_moodle
+      - MARIADB_DATABASE=bitnami_moodle
+      - MARIADB_CHARACTER_SET=utf8mb4
+      - MARIADB_COLLATE=utf8mb4_unicode_ci
+    volumes:
+      - 'moodle_db:/bitnami/mariadb'
+
+  moodle:
+    image: docker.io/bitnami/moodle:3
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - '8083:8080'
+    {%- endif %}
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.rule=Host(`ead.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-ead.loadbalancer.server.port=8080"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.entrypoints=web"
+      {%- endif %}
+    {%- endif %}      
+    environment:
+      - MOODLE_USERNAME=admin
+      - MOODLE_PASSWORD=!!!SET MASTER_ADMIN_PASSWORD!!!
+      - MOODLE_SITE_NAME={{cookiecutter.project_name}}
+      - MOODLE_DATABASE_HOST=moodle_db
+      - MOODLE_DATABASE_PORT_NUMBER=3306
+      - MOODLE_DATABASE_USER=bn_moodle
+      - MOODLE_DATABASE_NAME=bitnami_moodle
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - 'moodle_data:/bitnami/moodle'
+    depends_on:
+      - moodle_db
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}
   
+  {%- endif %}
+
+  {%- if cookiecutter.use_rasax == 'y' %}
+
+  rasa-x:
+    restart: always
+    image: "rasa/rasa-x:${RASA_X_VERSION}"
+    expose:
+      - "5002"
+    volumes:
+      - ./data/rasax/models:/app/models
+      - ./confs/rasax/environments.yml:/app/environments.yml
+      - ./confs/rasax/credentials.yml:/app/credentials.yml
+      - ./confs/rasax/endpoints.yml:/app/endpoints.yml
+      - ./data/rasax/logs:/logs
+      - ./data/rasax/auth:/app/auth
+    environment:
+      <<: *database-credentials
+      <<: *rasa-credentials
+      SELF_PORT: "5002"
+      DB_DATABASE: "${DB_DATABASE:-rasa}"
+      RASA_MODEL_DIR: "/app/models"
+      PASSWORD_SALT: ${PASSWORD_SALT}
+      RABBITMQ_QUEUE: "rasa_production_events"
+      RASA_X_USER_ANALYTICS: "0"
+      SANIC_RESPONSE_TIMEOUT: "3600"
+      RUN_DATABASE_MIGRATION_AS_SEPARATE_SERVICE: "true"
+      RASA_X_PASSWORD: "!!!SET MASTER_ADMIN_PASSWORD!!!"
+    depends_on:
+      - db
+      
+  db-migration:
+    entrypoint: ["python"]
+    command: ["-m", "rasax.community.services.db_migration_service"]
+    restart: always
+    image: "rasa/rasa-x:${RASA_X_VERSION}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || kill 1"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
+      start_period: 2s
+    expose:
+      - "8000"
+    environment:
+      <<: *database-credentials
+      RUN_DATABASE_MIGRATION_AS_SEPARATE_SERVICE: "true"
+      MPLCONFIGDIR: "/tmp/.matplotlib"
+    depends_on:
+      - db
+
+  rasa-production:
+    <<: *default-rasa-service
+    environment:
+      <<: *rasa-credentials
+      RASA_ENVIRONMENT: "production"
+      DB_DATABASE: "tracker"
+      MPLCONFIGDIR: "/tmp/.matplotlib"
+      RASA_MODEL_SERVER: "http://rasa-x:5002/api/projects/default/models/tags/production"
+
+  rasa-worker:
+    <<: *default-rasa-service
+    environment:
+      <<: *rasa-credentials
+      RASA_ENVIRONMENT: "worker"
+      DB_DATABASE: "worker_tracker"
+      MPLCONFIGDIR: "/tmp/.matplotlib"
+      RASA_MODEL_SERVER: "http://rasa-x:5002/api/projects/default/models/tags/production"
+
+  app:
+    restart: always
+    image: "rasa/rasa-x-demo:${RASA_X_DEMO_VERSION}"
+    expose:
+      - "5055"
+    depends_on:
+      - rasa-production
+
+  db:
+    restart: always
+    image: "bitnami/postgresql:11.11.0"
+    expose:
+      - "5432"
+    environment:
+      POSTGRESQL_USERNAME: "${DB_USER:-admin}"
+      POSTGRESQL_PASSWORD: "${DB_PASSWORD}"
+      POSTGRESQL_DATABASE: "${DB_DATABASE:-rasa}"
+    volumes:
+      - rasax_db:/bitnami/postgresql
+
+  rabbit:
+    restart: always
+    image: "bitnami/rabbitmq:3.8.16"
+    environment:
+      RABBITMQ_HOST: "rabbit"
+      RABBITMQ_USERNAME: "user"
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DISK_FREE_RELATIVE_LIMIT: "0.1"
+    expose:
+      - "5672"
+
+  duckling:
+    restart: always
+    image: "rasa/duckling:0.1.6.5-r0"
+    expose:
+      - "8000"
+    command: ["duckling-example-exe", "--no-access-log", "--no-error-log"]
+
+  redis:
+    restart: always
+    image: "bitnami/redis:6.2.3"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    expose:
+      - "6379"
+                 
+  nginx-rasa:
+    restart: always
+    image: "nginx:1.19"
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - "8055:8080"
+    {%- endif %}
+    volumes:
+      - ./data/rasax/certs:/etc/certs
+      - ./confs/rasax/nginx-config-files/nginx.conf:/etc/nginx/nginx.conf
+      - ./confs/rasax/nginx-config-files/ssl.conf.template:/etc/nginx/templates/ssl.conf.template
+      - ./confs/rasax/nginx-config-files/rasax.nginx.template:/etc/nginx/templates/rasax.nginx.template
+    environment:
+      <<: *nginx-host-variables
+    depends_on:
+      - rasa-x
+      - rasa-production
+      - app
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-bot.rule=Host(`bot.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-bot.loadbalancer.server.port=8080"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-bot.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-bot.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-bot.entrypoints=web"
+      {%- endif %}
+    {%- endif %}   
+    networks:
+      - traefik-public
+      - default
+
   {%- endif %}

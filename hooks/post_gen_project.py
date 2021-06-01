@@ -61,43 +61,9 @@ def set_flag(file_path, flag, value=None, formatted=None, *args, **kwargs):
 
     return value
 
-
-management_message = '''
-# MANAGEMENT AND BACKUP/RESTORE
-
-# now, you should run the base stack:
-cd {{ cookiecutter.project_slug}}
-docker-compose up -d traefik postgres
-
-# RUN service
-docker-compose up -d rocketchat
-docker-compose up -d rocketconnect
-docker-compose up -d metabase
-docker-compose up -d nextcloud
-docker-compose up -d ....
-
-# RUN all services
-docker-compose up -d
-
-# LOGS watch logs
-docker-compose logs -f --tail=10
-docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
-
-# LIST all VOLUMES used in this project
-docker volume ls | grep {{ cookiecutter.project_slug}}_
-
-# STOP all CONTAINERS for this project
-docker-compose stop
-
-# REMOVE all containers
-docker-compose rm
-
-# REMOVE all VOLUMES used in this project
-docker volume rm $(docker volume ls | grep {{ cookiecutter.project_slug}}_ | awk '{print $2}')
-'''
-
 def main():
     compose_file = os.path.join("docker-compose.yml")
+    env_file = os.path.join(".env")
     django_secret_key = set_flag(
         compose_file,
         "!!!SET DJANGO_SECRET_KEY!!!",
@@ -184,10 +150,14 @@ def main():
     use_glpi = '{{ cookiecutter.use_glpi}}'
     if use_glpi == "y":
         print("Configure a new user at: http://glpi.{{ cookiecutter.domain}}")
+    
+    use_moodle = '{{ cookiecutter.use_moodle}}'
+    if use_moodle == "y":
+        print("User master password at: http://ead.{{ cookiecutter.domain}}")
 
-    print("######################")
-
-    print(management_message)
+    use_rasax = '{{ cookiecutter.use_rasax}}'
+    if use_rasax == "y":
+        print("User master password at: http://bot.{{ cookiecutter.domain}}")
 
     set_flag(
         compose_file,
@@ -203,6 +173,62 @@ def main():
         using_digits=True,
         using_ascii_letters=True,
     )
+    set_flag(
+        env_file,
+        "!!!SET RASA_TOKEN!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+    set_flag(
+        env_file,
+        "!!!SET RASA_X_TOKEN!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+    set_flag(
+        env_file,
+        "!!!SET PASSWORD_SALT!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+    set_flag(
+        env_file,
+        "!!!SET JWT_SECRET!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+    set_flag(
+        env_file,
+        "!!!SET RABBITMQ_PASSWORD!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+    set_flag(
+        env_file,
+        "!!!SET DB_PASSWORD!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+    set_flag(
+        env_file,
+        "!!!SET REDIS_PASSWORD!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+
+    print("######################")
+
+    howtouse = open("how_to_use.txt")
+    lines = howtouse.readlines()
+    for line in lines:
+        print(line, end='')
 
 
 if __name__ == "__main__":

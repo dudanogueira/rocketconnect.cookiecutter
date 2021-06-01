@@ -1,0 +1,35 @@
+models:
+   url: ${RASA_MODEL_SERVER}
+   token: ${RASA_X_TOKEN}
+   wait_time_between_pulls: ${RASA_MODEL_PULL_INTERVAL}
+tracker_store:
+   type: sql
+   dialect: "postgresql"
+   url: ${DB_HOST}
+   port: ${DB_PORT}
+   username: ${DB_USER}
+   password: ${DB_PASSWORD}
+   db: ${DB_DATABASE}
+   login_db: ${DB_LOGIN_DB}
+lock_store:
+   type: "redis"
+   url: ${REDIS_HOST}
+   port: ${REDIS_PORT}
+   password: ${REDIS_PASSWORD}
+   db: ${REDIS_DB}
+cache:
+   type: "redis"
+   url: ${REDIS_HOST}
+   port: ${REDIS_PORT}
+   password: ${REDIS_PASSWORD}
+   db: ${REDIS_CACHE_DB}
+event_broker:
+   type: "pika"
+   url: ${RABBITMQ_HOST}
+   username: ${RABBITMQ_USERNAME}
+   password: ${RABBITMQ_PASSWORD}
+   queues:
+   - ${RABBITMQ_QUEUE}
+action_endpoint:
+   url: ${RASA_USER_APP}/webhook
+   token: ""

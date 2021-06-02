@@ -35,6 +35,7 @@ Select your cookie flavours
     domain [mycompany.localhost]: mycompany.com.br
     use_portainer [y]: 
     use_traefik [y]: 
+    expose_ports [n]: 
     use_letsencrypt [y]: 
     add_traefik_labels [y]: 
     email_for_letsencrypt [your@email.com]: 
@@ -48,6 +49,9 @@ Select your cookie flavours
     use_mautic [y]: 
     use_limesurvey [y]: 
     use_glpi [y]: 
+    use_moodle [y]: 
+    use_rasax [y]: 
+
 
     ####### TAKE NOTE!!!! #######
     Master User/Password:  admin / XXXXXXXXXX
@@ -71,7 +75,54 @@ Select your cookie flavours
     Configure a new user at: http://odoo.mycompany.com.br
     Configure a new user at: http://m.mycompany.com.br
     Configure a new user at: http://glpi.mycompany.com.br
+    User master password at: http://bot.mycompany.com.br
     ######################
+    ######################
+    # MANAGEMENT AND BACKUP/RESTORE
+
+    # enter the project folder
+    cd mycompany
+    
+    # for some reason, rasax requires confs file to be of a specific permission
+    sudo chgrp -R root confs/rasax/*.yml && sudo chmod -R 770 confs/rasax/*.yml
+
+    # create a public, attachable network:
+    docker network create --attachable traefik-public
+
+    # Run base containers
+    # some containers may encounter problems if postgres is not up
+    # lets start them first and wait a little bit for the first run
+    docker-compose up -d traefik postgres
+
+    # Run other service
+    # * after waiting a little bit.
+    docker-compose up -d rocketchat
+    docker-compose up -d rocketconnect
+    docker-compose up -d metabase
+    docker-compose up -d nextcloud
+    docker-compose up -d ....
+
+    # After the initial run, you can start all
+    docker-compose up -d
+
+    # Or stop all containers
+    docker-compose stop
+
+    # watch all logs
+    docker-compose logs -f --tail=10
+
+    # or only a few
+    docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
+
+    # list all VOLUMES used in this project
+    docker volume ls | grep mycompany_
+
+    # REMOVE all containers
+    docker-compose rm
+
+    # REMOVE all VOLUMES used in this project - WARNING!!!
+    docker volume rm $(docker volume ls | grep mycompany_ | awk '{print $2}')
+
 
 Point your domain at it
 ===========
@@ -99,3 +150,4 @@ Proposed new open source
 - SuiteCRM
 - Pentaho / Webspoon
 - Orange HRM
+- Wekan

@@ -222,6 +222,20 @@ def main():
         using_digits=True,
         using_ascii_letters=True,
     )
+    set_flag(
+        env_file,
+        "!!!SET GLPI_USER!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )
+    set_flag(
+        env_file,
+        "!!!SET GLPI_PASSWORD!!!",
+        length=8,
+        using_digits=True,
+        using_ascii_letters=True,
+    )        
 
     print("######################")
 

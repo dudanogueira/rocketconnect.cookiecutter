@@ -720,8 +720,8 @@ services:
       - glpi_db:/var/lib/mysql:rw
     environment: 
       MYSQL_DATABASE: glpi
-      MYSQL_USER: glpi-user 
-      MYSQL_PASSWORD: glpi-pass 
+      MYSQL_USER: !!!SET GLPI_USER!!! 
+      MYSQL_PASSWORD: !!!SET GLPI_PASSWORD!!!
       MYSQL_RANDOM_ROOT_PASSWORD: 1 
 
   glpi: 
@@ -735,8 +735,8 @@ services:
       MARIADB_HOST: glpi_db
       MARIADB_PORT: 3306
       MARIADB_DATABASE: glpi
-      MARIADB_USER: glpi-user
-      MARIADB_PASSWORD: glpi-pass
+      MARIADB_USER: !!!SET GLPI_USER!!!
+      MARIADB_PASSWORD: !!!SET GLPI_PASSWORD!!!
       VERSION: "9.5.4"
       PLUGINS: "all"
     depends_on: 

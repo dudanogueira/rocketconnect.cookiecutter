@@ -126,7 +126,7 @@ Select your cookie flavours
 
 Point your domain at it
 ===========
-If you deployed at a server with public up, point mycompany.com.br and *.mycompany.com.br to the server ip.
+If you deployed at a server with public ip, point mycompany.com.br and *.mycompany.com.br to the server ip.
 
 if you are deploying locally, or to test, do not choose lets encript, and set the domain to myclient.localhost.
 

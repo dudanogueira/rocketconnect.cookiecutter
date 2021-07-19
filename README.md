@@ -132,6 +132,9 @@ if you are deploying locally, or to test, do not choose lets encript, and set th
 
 RoadMap
 ===========
+- Create tests
+- Create Terraform and Ansible options
+- Support K8s (?)
 - Add some more cool open source softwares
 - Use LDAP
 - Optionally Integrate with LDAP
@@ -146,8 +149,11 @@ Proposed new open source
 - Prestashop
 - Wordpress
 - ELK - Grafana, Prometheus
-- Drupal
+- Drupal / Joomla
 - SuiteCRM
 - Pentaho / Webspoon
 - Orange HRM
 - Wekan
+- Gitlab
+- cAdvisor
+- Ansible Tower

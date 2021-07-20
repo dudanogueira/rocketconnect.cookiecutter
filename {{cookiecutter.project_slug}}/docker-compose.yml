@@ -10,7 +10,7 @@ networks:
 
 volumes:
   postgres_data:
-  {%- if cookiecutter.use_letsencrypt %}
+  {%- if cookiecutter.use_letsencrypt == 'y' %}
   traefik_letsencrypt:
   {%- endif %}
   {%- if cookiecutter.use_portainer == 'y' %}
@@ -143,7 +143,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--providers.docker.network=traefik-public"
-      {%- if cookiecutter.use_letsencrypt %}
+      {%- if cookiecutter.use_letsencrypt  == 'y' %}
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
@@ -160,7 +160,7 @@ services:
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      {%- if cookiecutter.use_letsencrypt %}
+      {%- if cookiecutter.use_letsencrypt  == 'y' %}
       - traefik_letsencrypt:/letsencrypt
       {%- endif %}
     labels:
@@ -478,7 +478,7 @@ services:
     image: 'php:apache'
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
-       - "80:80"
+       - "81:80"
     {%- endif %}
     volumes:
       - ./site:/var/www/html
@@ -649,7 +649,7 @@ services:
       - mauticdb
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
-      - 8080:80
+      - 8088:80
     {%- endif %}
     volumes:
       - mautic_data:/var/www/html

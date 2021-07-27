@@ -53,7 +53,35 @@ volumes:
   {%- if cookiecutter.use_rasax == 'y' %}
   rasax_db:
   {%- endif %}
+  {%- if cookiecutter.use_openproject == 'y' %}
+  openproject_pgdata:
+  openproject_opdata:
+  {%- endif %}
 
+{%- if cookiecutter.use_openproject == 'y' %}
+x-op-restart-policy: &restart_policy
+  restart: unless-stopped
+x-op-image: &image
+  image: openproject/community:${TAG:-11}
+x-op-app: &app
+  <<: *image
+  <<: *restart_policy
+  environment:
+    RAILS_CACHE_STORE: "memcache"
+    OPENPROJECT_CACHE__MEMCACHE__SERVER: "cache:11211"
+    OPENPROJECT_RAILS__RELATIVE__URL__ROOT: "${OPENPROJECT_RAILS__RELATIVE__URL__ROOT:-}"
+    DATABASE_URL: "postgres://postgres:p4ssw0rd@db/openproject?pool=20&encoding=unicode&reconnect=true"
+    RAILS_MIN_THREADS: 4
+    RAILS_MAX_THREADS: 16
+    USE_PUMA: "true"
+    # set to true to enable the email receiving feature. See ./docker/cron for more options
+    IMAP_ENABLED: "${IMAP_ENABLED:-false}"
+  volumes:
+    - "openproject_opdata:/var/openproject/assets"
+  links:
+    - "openproject_db:db"
+    - "openproject_cache:cache"
+{%- endif %}
 
 {%- if cookiecutter.use_rasax == 'y' %}
 
@@ -548,7 +576,7 @@ services:
     restart: always
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
-      - 8081:80
+      - 8084:80
     {%- endif %}
     links:
       - postgres
@@ -964,3 +992,65 @@ services:
       - default
 
   {%- endif %}
+
+
+{%- if cookiecutter.use_openproject == 'y' %}  
+  # reference
+  # https://www.openproject.org/docs/installation-and-operations/installation/docker/
+  openproject_db:
+    image: postgres:10
+    <<: *restart_policy
+    stop_grace_period: "3s"
+    volumes:
+      - "openproject_pgdata:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_PASSWORD: p4ssw0rd
+      POSTGRES_DB: openproject
+
+  openproject_cache:
+    image: memcached
+    <<: *restart_policy
+
+  openproject:
+    <<: *app
+    command: "./docker/prod/web"
+    depends_on:
+      - openproject_db
+      - openproject_cache
+      - openproject_seeder
+    networks:
+      - traefik-public
+      - default
+    labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.rule=Host(`projects.{{ cookiecutter.domain }}`)"
+        - "traefik.http.services.{{ cookiecutter.project_slug }}-projects.loadbalancer.server.port=8080"
+        {%- if cookiecutter.use_letsencrypt == 'y' %}
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.entrypoints=websecure"
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.tls.certresolver=le"
+        {%- else %}
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.entrypoints=web"
+        {%- endif %}   
+
+  openproject_worker:
+    <<: *app
+    command: "./docker/prod/worker"
+    depends_on:
+      - openproject_db
+      - openproject_cache
+      - openproject_seeder
+
+  openproject_cron:
+    <<: *app
+    command: "./docker/prod/cron"
+    depends_on:
+      - openproject_db
+      - openproject_cache
+      - openproject_seeder
+
+  openproject_seeder:
+    <<: *app
+    command: "./docker/prod/seeder"
+    restart: on-failure
+
+{%- endif %}

@@ -19,5 +19,6 @@
   "use_limesurvey": "y",
   "use_glpi": "y",
   "use_moodle": "y",
-  "use_rasax": "y"
+  "use_rasax": "y",
+  "use_openproject": "y"
 }

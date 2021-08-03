@@ -115,7 +115,7 @@ def main():
     use_rocketchat = '{{ cookiecutter.use_rocketchat}}'
     if use_rocketchat == "y":
         print(
-            "# Use the master password at: http://chat.{{ cookiecutter.domain}}")
+            "# Use the master password at. ADMIN is adminrc: http://chat.{{ cookiecutter.domain}}")
 
     use_rocketconnect = '{{ cookiecutter.use_rocketconnect}}'
     if use_rocketconnect == "y":

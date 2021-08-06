@@ -305,19 +305,6 @@ services:
       - default
     {%- endif %}
   
-  postgres:
-    image: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data:Z
-      - ./scripts/postgres/:/docker-entrypoint-initdb.d/
-    deploy:
-      mode: global
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.use_metabase == 'y' %},metabase{%-endif%}{%- if cookiecutter.use_nextcloud == 'y' %},nextcloud{%-endif%}
-      POSTGRES_USER: !!!SET POSTGRES_USER!!!
-      POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
 
   redis_rocketconnect:
     image: redis:5.0
@@ -375,7 +362,25 @@ services:
     {%- endif %}
 
   {%- endif %}
-      
+
+  {%- if cookiecutter.use_rocketconnect == 'y' or  cookiecutter.use_nextcloud == 'y' or cookiecutter.use_metabase == 'yes' %}
+
+  postgres:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:Z
+      - ./scripts/postgres/:/docker-entrypoint-initdb.d/
+    deploy:
+      mode: global
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.use_metabase == 'y' %},metabase{%-endif%}{%- if cookiecutter.use_nextcloud == 'y' %},nextcloud{%-endif%}
+      POSTGRES_USER: !!!SET POSTGRES_USER!!!
+      POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
+
+  {%- endif %}
+
   {%- if cookiecutter.use_waautomate == 'y' %}
 
   waautomate1:

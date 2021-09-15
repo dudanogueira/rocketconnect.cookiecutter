@@ -425,6 +425,9 @@ services:
 
   rocketchat:
     image: rocketchat/rocket.chat:latest
+    networks:
+      - traefik-public
+      - default
     command: >
       bash -c
         "for i in `seq 1 30`; do

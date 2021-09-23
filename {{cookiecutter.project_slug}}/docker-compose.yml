@@ -448,6 +448,7 @@ services:
       - OVERWRITE_SETTING_Show_Setup_Wizard=completed
       - ADMIN_USERNAME=adminrc
       - ADMIN_PASS=!!!SET MASTER_ADMIN_PASSWORD!!!
+      - TZ=America/Brasili
     depends_on:
       - mongo
       - mongo-init-replica

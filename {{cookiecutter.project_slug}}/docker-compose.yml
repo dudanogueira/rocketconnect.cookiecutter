@@ -252,7 +252,8 @@ services:
     image: dudanogueira/rocket.connect:master
     depends_on:
       - postgres
-      - redis
+      - redis_rocketconnect
+    restart: unless-stopped
     environment:
       DJANGO_DEBUG: "False"
       DJANGO_SETTINGS_MODULE: config.settings.production
@@ -396,6 +397,7 @@ services:
     
   browser:
     image: browserless/chrome:1.45-chrome-stable
+    restart: unless-stopped
     hostname: browser
     ports:
       - "3010:3000"
@@ -512,6 +514,7 @@ services:
     ports:
        - "81:80"
     {%- endif %}
+    restart: unless-stopped
     volumes:
       - ./site:/var/www/html
       - ./confs/apache/additional.conf:/etc/apache2/conf-enabled/additional.conf
@@ -989,7 +992,7 @@ services:
 
   {%- endif %}
 
-  {%- if cookiecutter.use_rasax == 'y' or cookiecutter.use_rocketconnect == 'y' %}  
+  {%- if cookiecutter.use_rasax == 'y' %}  
   redis:
     restart: always
     image: "bitnami/redis:6.2.3"

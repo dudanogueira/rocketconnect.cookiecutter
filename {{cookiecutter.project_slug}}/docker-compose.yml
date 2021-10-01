@@ -59,6 +59,8 @@ volumes:
   {%- endif %}
 
 {%- if cookiecutter.use_openproject == 'y' %}
+
+
 x-op-restart-policy: &restart_policy
   restart: unless-stopped
 x-op-image: &image

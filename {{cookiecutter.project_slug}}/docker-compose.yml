@@ -942,7 +942,7 @@ services:
 
   rabbit:
     restart: always
-    image: "bitnami/rabbitmq:3.8.16"
+    image: "bitnami/rabbitmq:3.8.17"
     environment:
       RABBITMQ_HOST: "rabbit"
       RABBITMQ_USERNAME: "user"
@@ -953,7 +953,7 @@ services:
 
   duckling:
     restart: always
-    image: "rasa/duckling:0.1.6.5-r0"
+    image: "rasa/duckling:0.1.6.5-r2"
     expose:
       - "8000"
     command: ["duckling-example-exe", "--no-access-log", "--no-error-log"]
@@ -997,7 +997,7 @@ services:
   {%- if cookiecutter.use_rasax == 'y' %}  
   redis:
     restart: always
-    image: "bitnami/redis:6.2.3"
+    image: "bitnami/redis:6.2.4"
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     expose:

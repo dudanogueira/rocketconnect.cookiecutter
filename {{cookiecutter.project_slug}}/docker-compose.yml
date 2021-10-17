@@ -59,6 +59,8 @@ volumes:
   {%- endif %}
 
 {%- if cookiecutter.use_openproject == 'y' %}
+
+
 x-op-restart-policy: &restart_policy
   restart: unless-stopped
 x-op-image: &image
@@ -252,7 +254,8 @@ services:
     image: dudanogueira/rocket.connect:master
     depends_on:
       - postgres
-      - redis
+      - redis_rocketconnect
+    restart: unless-stopped
     environment:
       DJANGO_DEBUG: "False"
       DJANGO_SETTINGS_MODULE: config.settings.production
@@ -401,6 +404,7 @@ services:
     
   browser:
     image: browserless/chrome:1.45-chrome-stable
+    restart: unless-stopped
     hostname: browser
     ports:
       - "3010:3000"
@@ -442,6 +446,9 @@ services:
 
   rocketchat:
     image: rocketchat/rocket.chat:latest
+    networks:
+      - traefik-public
+      - default
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -462,6 +469,7 @@ services:
       - OVERWRITE_SETTING_Show_Setup_Wizard=completed
       - ADMIN_USERNAME=adminrc
       - ADMIN_PASS=!!!SET MASTER_ADMIN_PASSWORD!!!
+      - TZ=America/Brasilia
     depends_on:
       - mongo
       - mongo-init-replica
@@ -525,6 +533,7 @@ services:
     ports:
        - "81:80"
     {%- endif %}
+    restart: unless-stopped
     volumes:
       - ./site:/var/www/html
       - ./confs/apache/additional.conf:/etc/apache2/conf-enabled/additional.conf
@@ -950,7 +959,7 @@ services:
 
   rabbit:
     restart: always
-    image: "bitnami/rabbitmq:3.8.16"
+    image: "bitnami/rabbitmq:3.8.17"
     environment:
       RABBITMQ_HOST: "rabbit"
       RABBITMQ_USERNAME: "user"
@@ -961,7 +970,7 @@ services:
 
   duckling:
     restart: always
-    image: "rasa/duckling:0.1.6.5-r0"
+    image: "rasa/duckling:0.1.6.5-r2"
     expose:
       - "8000"
     command: ["duckling-example-exe", "--no-access-log", "--no-error-log"]
@@ -1002,10 +1011,10 @@ services:
 
   {%- endif %}
 
-  {%- if cookiecutter.use_rasax == 'y' or cookiecutter.use_rocketconnect == 'y' %}  
+  {%- if cookiecutter.use_rasax == 'y' %}  
   redis:
     restart: always
-    image: "bitnami/redis:6.2.3"
+    image: "bitnami/redis:6.2.4"
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     expose:

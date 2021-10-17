@@ -1,7 +1,10 @@
 # Rocket Connect Cookie Cutter
 Cookie cutter for Rocket.Connect
 
-This is a simple script to define how to deploy our connectings
+This is a simple script that guides you into deploying some nice open source projects.
+
+Whats is [Cookiecutter](https://github.com/cookiecutter/cookiecutter)?
+What is [Rocket.Connect](https://github.com/dudanogueira/rocket.connect/)?
 
 WARNING!
 ======================

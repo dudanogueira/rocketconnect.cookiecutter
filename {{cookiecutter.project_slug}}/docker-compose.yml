@@ -10,7 +10,7 @@ networks:
 
 volumes:
   postgres_data:
-  {%- if cookiecutter.use_letsencrypt == 'y' %}
+  {%- if cookiecutter.use_letsencrypt == 'y' and cookiecutter.use_traefik == 'y' %}
   traefik_letsencrypt:
   {%- endif %}
   {%- if cookiecutter.use_portainer == 'y' %}
@@ -426,6 +426,18 @@ services:
   
   {%- endif %}
 
+  {%- if cookiecutter.use_wppconnect == 'y' %}
+
+  wppconnect:
+    image: wppconnect/server-cli:latest
+    entrypoint: wppserver --log-level DEBUG --startAllSession --secretKey My53cr3tKY --port 21465
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - "21465:21465"
+    {% endif %}
+
+  {%- endif %}
+
   {%- if cookiecutter.use_rocketchat == 'y' %}
 
   rocketchat:
@@ -476,19 +488,19 @@ services:
     {%- endif %}
 
   mongo:
-    image: mongo:4.0
+    image: mongo:4.4
     restart: unless-stopped
     volumes:
      - ./data/rocketchat_db:/data/db
      - ./data/rocketchat_dump/dump:/dump
-    command: mongod --smallfiles --oplogSize 128 --replSet rs0 --storageEngine=mmapv1
+    command: mongod --oplogSize 128 --replSet rs0 --storageEngine=wiredTiger;
     labels:
       - "traefik.enable=false"
 
   # this container's job is just run the command to initialize the replica set.
   # it will run the command and remove himself (it will not stay running)
   mongo-init-replica:
-    image: mongo:4.0
+    image: mongo:4.4
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -1000,7 +1012,7 @@ services:
       - "6379"
   {%- endif %}
 
-{%- if cookiecutter.use_openproject == 'y' %}  
+  {%- if cookiecutter.use_openproject == 'y' %}  
   # reference
   # https://www.openproject.org/docs/installation-and-operations/installation/docker/
   openproject_db:
@@ -1059,4 +1071,4 @@ services:
     command: "./docker/prod/seeder"
     restart: on-failure
 
-{%- endif %}
+  {%- endif %}

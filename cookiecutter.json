@@ -12,6 +12,7 @@
   "use_rocketchat": "y",
   "use_rocketconnect": "y",
   "use_waautomate": "y",
+  "use_wppconnect": "y",
   "use_metabase": "y",
   "use_nextcloud": "y",
   "use_odoo": "y",

@@ -32,6 +32,13 @@ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
 Select your cookie flavours
 ===========
 
+Above is the "form" you will need to answer to cut this cookie.
+
+At the end of it, you get simple cmomands on how to manage the stack.
+This content will be available at a how_to_use.txt inside your project.
+
+**The master password** is at the first line of your docker-compose.yml
+
     root@mycompany.com.br:~$ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
     project_name [My Company]: 
     project_slug [mycompany]: 
@@ -46,6 +53,7 @@ Select your cookie flavours
     use_rocketchat [y]: 
     use_rocketconnect [y]: 
     use_waautomate [y]: 
+    use_wppconnect [y]: 
     use_metabase [y]: 
     use_nextcloud [y]: 
     use_odoo [y]: 
@@ -54,7 +62,7 @@ Select your cookie flavours
     use_glpi [y]: 
     use_moodle [y]: 
     use_rasax [y]: 
-
+    use_openproject [y]: 
 
     ####### TAKE NOTE!!!! #######
     Master User/Password:  admin / XXXXXXXXXX
@@ -62,30 +70,28 @@ Select your cookie flavours
     #
     # Website at: http://www.mycompany.com.br
     #
-
-    Use the master password at: http://traefik.mycompany.com.br/dashboard/
-    Use the master password at: http://chat.mycompany.com.br
-
+    # Use the master password at: http://traefik.mycompany.com.br/dashboard/
+    # Use the master password at. ADMIN is adminrc: http://chat.mycompany.com.br
     # RocketConnect, run the following commands inside deploy folder
     docker-compose run --rm rocketconnect python manage.py migrate
     docker-compose run --rm rocketconnect python manage.py createsuperuser
-
-    Use the created user at:  http://rc.mycompany.com.br/adminRANDOMSTUFF
-    Use the created user at: http://rc.mycompany.com.br
-    Use the master password at: http://rc.mycompany.com.br/flowerRANDOMSTUFF
+    #
+    # Use the created user at:  http://rc.mycompany.com.br/adminL32yP
+    # Use the created user at: http://rc.mycompany.com.br
+    # Use the master password at: http://rc.mycompany.com.br/flowerL32yP
     Configure a new user at: http://metabase.mycompany.com.br
     Use the master password at: http://cloud.mycompany.com.br
     Configure a new user at: http://odoo.mycompany.com.br
     Configure a new user at: http://m.mycompany.com.br
     Configure a new user at: http://glpi.mycompany.com.br
+    User master password at: http://ead.mycompany.com.br
     User master password at: http://bot.mycompany.com.br
-    ######################
     ######################
     # MANAGEMENT AND BACKUP/RESTORE
 
     # enter the project folder
     cd mycompany
-    
+
     # for some reason, rasax requires confs file to be of a specific permission
     sudo chgrp -R root confs/rasax/*.yml && sudo chmod -R 770 confs/rasax/*.yml
 
@@ -125,6 +131,7 @@ Select your cookie flavours
 
     # REMOVE all VOLUMES used in this project - WARNING!!!
     docker volume rm $(docker volume ls | grep mycompany_ | awk '{print $2}')
+
 
 
 Point your domain at it

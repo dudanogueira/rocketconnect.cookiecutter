@@ -280,6 +280,7 @@ services:
       DJANGO_EMAIL_HOST: 'smtp_server'
       DJANGO_EMAIL_HOST_USER: 'smtp_user'
       DJANGO_EMAIL_HOST_PASSWORD: 'smtp_password'
+      DJANGO_ACCOUNT_EMAIL_VERIFICATION: 'optional' # mandatory, optonal, or none
     healthcheck:
       test: curl --fail http://localhost:5000
       interval: 30s

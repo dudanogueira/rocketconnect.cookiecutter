@@ -502,7 +502,7 @@ services:
     volumes:
      - ./data/rocketchat_db:/data/db
      - ./data/rocketchat_dump/dump:/dump
-    command: mongod --oplogSize 128 --replSet rs0 --storageEngine=wiredTiger;
+    command: mongod --oplogSize 128 --replSet rs0 --storageEngine=wiredTiger
     labels:
       - "traefik.enable=false"
 

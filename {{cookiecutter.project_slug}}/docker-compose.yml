@@ -57,6 +57,10 @@ volumes:
   openproject_pgdata:
   openproject_opdata:
   {%- endif %}
+  {%- if cookiecutter.use_wppconnect == 'y' %
+  wppconnect_data:
+  {%- endif %}
+  
 
 {%- if cookiecutter.use_openproject == 'y' %}
 
@@ -435,7 +439,17 @@ services:
 
   wppconnect:
     image: wppconnect/server-cli:latest
-    entrypoint: wppserver --log-level DEBUG --startAllSession --secretKey My53cr3tKY --port 21465
+    command: wppserver
+      --log-level DEBUG
+      --secretKey My53cr3tKY
+      --port 21465
+      --startAllSession
+      --webhook-allUnreadOnStart
+      --no-webhook-onPresenceChanged
+      --no-webhook-onParticipantsChanged
+      #--no-webhook-listenAcks
+    volumes:
+      - wppconnect_data:/usr/src/server-cli/tokens      
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - "21465:21465"

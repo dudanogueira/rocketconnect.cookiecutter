@@ -57,7 +57,7 @@ volumes:
   openproject_pgdata:
   openproject_opdata:
   {%- endif %}
-  {%- if cookiecutter.use_wppconnect == 'y' %
+  {%- if cookiecutter.use_wppconnect == 'y' %}
   wppconnect_data:
   {%- endif %}
   

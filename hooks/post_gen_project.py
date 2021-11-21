@@ -61,6 +61,7 @@ def set_flag(file_path, flag, value=None, formatted=None, *args, **kwargs):
 
     return value
 
+
 def main():
     compose_file = os.path.join("docker-compose.yml")
     env_file = os.path.join(".env")
@@ -98,7 +99,6 @@ def main():
     print("")
     print("Master User/Password:  admin / {0}".format(master_admin_password))
     print("")
-
 
     use_phpweb = '{{ cookiecutter.use_phpweb}}'
 
@@ -150,7 +150,7 @@ def main():
     use_glpi = '{{ cookiecutter.use_glpi}}'
     if use_glpi == "y":
         print("Configure a new user at: http://glpi.{{ cookiecutter.domain}}")
-    
+
     use_moodle = '{{ cookiecutter.use_moodle}}'
     if use_moodle == "y":
         print("User master password at: http://ead.{{ cookiecutter.domain}}")
@@ -158,6 +158,11 @@ def main():
     use_rasax = '{{ cookiecutter.use_rasax}}'
     if use_rasax == "y":
         print("User master password at: http://bot.{{ cookiecutter.domain}}")
+
+    use_metrics = '{{ cookiecutter.use_nextcloud}}'
+    if use_metrics == "y":
+        print(
+            "Use the master password at: http://grafana.{{ cookiecutter.domain}}")
 
     set_flag(
         compose_file,
@@ -235,7 +240,7 @@ def main():
         length=8,
         using_digits=True,
         using_ascii_letters=True,
-    )        
+    )
 
     print("######################")
 

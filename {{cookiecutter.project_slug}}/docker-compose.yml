@@ -60,6 +60,10 @@ volumes:
   {%- if cookiecutter.use_wppconnect == 'y' %}
   wppconnect_data:
   {%- endif %}
+  {%- if cookiecutter.use_rocketchat_metrics == 'y' %}
+  prometeus_data:
+  grafana_data:
+  {%- endif %}
   
 
 {%- if cookiecutter.use_openproject == 'y' %}
@@ -255,7 +259,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:master
+    image: dudanogueira/rocket.connect:0.2.1
     depends_on:
       - postgres
       - redis_rocketconnect
@@ -316,13 +320,9 @@ services:
 
   redis_rocketconnect:
     image: redis:5.0
-    deploy:
-      replicas: 1    
 
   celeryworker:
     <<: *django
-    deploy:
-      replicas: 1    
     command: /start-celeryworker
     ports: []
     labels: []
@@ -331,8 +331,6 @@ services:
 
   celerybeat:
     <<: *django
-    deploy:
-      replicas: 1    
     command: /start-celerybeat
     ports: []
     labels: []
@@ -340,9 +338,7 @@ services:
       disable: true
 
   flower:
-    <<: *django
-    deploy:
-      replicas: 1    
+    <<: *django  
     command: celery flower --app=config.celery_app  --broker="${CELERY_BROKER_URL}" --basic_auth="admin:!!!SET MASTER_ADMIN_PASSWORD!!!" --url_prefix=flower!!!SET DJANGO_ADMIN_URL!!!
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
@@ -378,8 +374,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data:Z
       - ./scripts/postgres/:/docker-entrypoint-initdb.d/
-    deploy:
-      mode: global
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -413,13 +407,6 @@ services:
     hostname: browser
     ports:
       - "3010:3000"
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
     environment:
         CONNECTION_TIMEOUT: -1
         KEEP_ALIVE: 'true'
@@ -482,9 +469,10 @@ services:
       - MONGO_OPLOG_URL=mongodb://mongo:27017/local
       - MAIL_URL=smtp://smtp.email
       - OVERWRITE_SETTING_Show_Setup_Wizard=completed
-      - ADMIN_USERNAME=adminrc
+      - ADMIN_USERNAME=admin
       - ADMIN_PASS=!!!SET MASTER_ADMIN_PASSWORD!!!
       - TZ=America/Brasilia
+      - OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList=administrator,system,user
     depends_on:
       - mongo
       - mongo-init-replica
@@ -540,6 +528,62 @@ services:
 
   {%- endif %}
 
+
+  {%- if cookiecutter.use_rocketchat_metrics == 'y' %}
+
+  
+  grafana:
+    image: grafana/grafana:8.2.5
+    restart: unless-stopped
+    {%- if cookiecutter.expose_ports == 'y' %}
+    ports:
+      - "3001:3000"
+    {%- endif %}
+    volumes:
+      - ./confs/rocketchat_metrics/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./confs/rocketchat_metrics/grafana/provisioning/dashboards/provider:/etc/grafana/provisioning/dashboards:ro
+      - ./confs/rocketchat_metrics/grafana/provisioning/dashboards/json-exports:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=!!!SET MASTER_ADMIN_PASSWORD!!!
+      - GF_SECURITY_ADMIN_USER=admin
+
+    {%- if cookiecutter.add_traefik_labels == 'y' %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat_metrics.rule=Host(`grafana.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-rocketchat_metrics.loadbalancer.server.port=3000"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat_metrics.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat_metrics.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-rocketchat_metrics.entrypoints=web"
+      {%- endif %}
+    {%- endif %}
+    {%- if cookiecutter.use_traefik == 'y' %}
+    networks:
+      - traefik-public
+      - default
+    {%- endif %}
+  
+  prometheus:
+    image: quay.io/prometheus/prometheus:v2.31.1
+    restart: unless-stopped
+    ports:
+     - 9090:9090
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - '--storage.tsdb.retention.time=12w'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - prometeus_data:/prometheus
+      - ./confs/rocketchat_metrics/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  {%- endif %}
+
+
   {%- if cookiecutter.use_phpweb == 'y' %}
 
   apache:
@@ -575,7 +619,7 @@ services:
   {%- if cookiecutter.use_metabase == 'y' %}
   
   metabase:
-    image: metabase/metabase:latest
+    image: metabase/metabase:v0.41.2
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - 3001:3000

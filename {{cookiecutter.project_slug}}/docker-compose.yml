@@ -657,7 +657,7 @@ services:
   {%- if cookiecutter.use_nextcloud == 'y' %}
 
   nextcloud:
-    image: nextcloud
+    image: nextcloud:22.2.3
     restart: always
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:

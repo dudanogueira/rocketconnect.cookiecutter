@@ -164,6 +164,11 @@ def main():
         print(
             "Use the master password at: http://grafana.{{ cookiecutter.domain}}")
 
+    use_wikijs = '{{ cookiecutter.use_wikijs}}'
+    if use_wikijs == "y":
+        print(
+            "Create a new admin user at: http://wiki.{{ cookiecutter.domain}}")
+
     set_flag(
         compose_file,
         "!!!SET POSTGRES_USER!!!",

@@ -99,7 +99,7 @@ This content will be available at a how_to_use.txt inside your project.
     docker network create --attachable traefik-public
 
     # Run base containers
-    # some containers may encounter problems if postgres is not up
+    # some containers may encounter problems if postgres is not uphttps://github.com/dudanogueira/rocketconnect.cookiecutter
     # lets start them first and wait a little bit for the first run
     docker-compose up -d traefik postgres
 
@@ -154,7 +154,7 @@ RoadMap
 
 Proposed new open source
 ===========
-- Dokuwiki
+- GroupOffice
 - Magento
 - Prestashop
 - Wordpress

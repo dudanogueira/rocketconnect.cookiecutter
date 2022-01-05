@@ -471,8 +471,6 @@ services:
       - ROOT_URL=http{%- if cookiecutter.use_letsencrypt == 'y' %}s{%- endif %}://chat.{{ cookiecutter.domain }}
       - MONGO_URL=mongodb://mongo:27017/rocketchat
       - MONGO_OPLOG_URL=mongodb://mongo:27017/local
-      - MAIL_URL=smtp://smtp.email
-      - OVERWRITE_SETTING_Show_Setup_Wizard=completed
       - ADMIN_USERNAME=admin
       - ADMIN_PASS=!!!SET MASTER_ADMIN_PASSWORD!!!
       - TZ=America/Brasilia

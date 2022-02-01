@@ -167,4 +167,5 @@ Proposed new open source
 - Gitlab
 - cAdvisor
 - Ansible Tower
--Jellyfin
+- Jellyfin
+- PenPot

@@ -169,3 +169,4 @@ Proposed new open source
 - Ansible Tower
 - Jellyfin
 - PenPot
+- Botpress

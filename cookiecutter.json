@@ -22,6 +22,7 @@
   "use_glpi": "y",
   "use_moodle": "y",
   "use_rasax": "y",
+  "use_botpress": "y",
   "use_openproject": "y",
   "use_wikijs": "y"
 }

@@ -262,7 +262,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:v0.2.1
+    image: dudanogueira/rocket.connect:v0.4.0
     depends_on:
       - postgres
       - redis_rocketconnect

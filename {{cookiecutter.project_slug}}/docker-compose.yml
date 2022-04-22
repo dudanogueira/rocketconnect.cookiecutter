@@ -1193,7 +1193,7 @@ services:
       - 3000
     {%- endif %}
     environment:
-      - DATABASE_URL=postgres://!!!SET POSTGRES_USER!!!:!!!SET POSTGRES_USER!!!@postgres:5432/botpress
+      - DATABASE_URL=postgres://!!!SET POSTGRES_USER!!!:!!!SET POSTGRES_PASSWORD!!!@postgres:5432/botpress
       - REDIS_URL=redis://redis:6379?password=${REDIS_PASSWORD}
       - BP_PRODUCTION=true
       - BPFS_STORAGE=database

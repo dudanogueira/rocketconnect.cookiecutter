@@ -151,8 +151,8 @@ x-rasa-credentials: &rasa-credentials
   RASA_TELEMETRY_ENABLED: ${RASA_TELEMETRY_ENABLED:-true}
 
 x-rasa-services: &default-rasa-service
-  restart: always
   image: "rasa/rasa:${RASA_VERSION}-full"
+  restart: unless-stopped
   volumes:
       - ./.config:/.config
   expose:
@@ -179,6 +179,7 @@ services:
 
   traefik:
     image: "traefik:v2.4"
+    restart: unless-stopped
     command:
       #- "--log.level=DEBUG"
       - "--api.insecure=true"
@@ -230,8 +231,8 @@ services:
 
   portainer:
     image: portainer/portainer-ce
+    restart: unless-stopped
     command: -H unix:///var/run/docker.sock
-    restart: always
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - 9000:9000
@@ -265,10 +266,10 @@ services:
 
   rocketconnect: &django
     image: dudanogueira/rocket.connect:v0.4.0
+    restart: unless-stopped
     depends_on:
       - postgres
       - redis_rocketconnect
-    restart: unless-stopped
     environment:
       DJANGO_DEBUG: "False"
       DJANGO_SETTINGS_MODULE: config.settings.production
@@ -377,6 +378,7 @@ services:
 
   postgres:
     image: postgres
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data:Z
       - ./scripts/postgres/:/docker-entrypoint-initdb.d/
@@ -393,8 +395,8 @@ services:
 
   waautomate1:
     image: dudanogueira/waautomate:latest
-    command: npx @open-wa/wa-automate --ev "http://tasks.rocketconnect:5000/connector/0696DBBDDBA5435682CA/" --no-kill-on-logout
     restart: unless-stopped
+    command: npx @open-wa/wa-automate --ev "http://tasks.rocketconnect:5000/connector/0696DBBDDBA5435682CA/" --no-kill-on-logout
     volumes:
       - waautomate_session_data:/usr/src/app/session_data
       - ./instances/instance1.json:/usr/src/app/cli.config.json
@@ -432,6 +434,7 @@ services:
 
   wppconnect:
     image: wppconnect/server-cli:latest
+    restart: unless-stopped
     command: wppserver
       --log-level DEBUG
       --secretKey My53cr3tKY
@@ -454,6 +457,7 @@ services:
 
   rocketchat:
     image: rocketchat/rocket.chat:4.7.0
+    restart: unless-stopped
     networks:
       - traefik-public
       - default
@@ -465,7 +469,6 @@ services:
           echo \"Tried $$i times. Waiting 5 secs...\";
           sleep 5;
         done; (exit $$s)"
-    restart: unless-stopped
     volumes:
       - rocketchat_uploads:/app/uploads
     environment:
@@ -592,11 +595,11 @@ services:
 
   apache:
     image: 'php:apache'
+    restart: unless-stopped
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
        - "81:80"
     {%- endif %}
-    restart: unless-stopped
     volumes:
       - ./site:/var/www/html
       - ./confs/apache/additional.conf:/etc/apache2/conf-enabled/additional.conf
@@ -624,6 +627,7 @@ services:
   
   metabase:
     image: metabase/metabase:v0.41.2
+    restart: unless-stopped
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - 3001:3000
@@ -662,7 +666,7 @@ services:
 
   nextcloud:
     image: nextcloud:22.2.3
-    restart: always
+    restart: unless-stopped
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - 8084:80
@@ -706,6 +710,7 @@ services:
 
   odoo:
     image: odoo:14.0
+    restart: unless-stopped
     depends_on:
       - odoo_db
     volumes:
@@ -738,6 +743,7 @@ services:
 
   odoo_db:
     image: postgres:10
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=odoo
@@ -753,6 +759,7 @@ services:
   {%- if cookiecutter.use_mautic == 'y' %}
   mauticdb:
     image: powertic/percona-docker
+    restart: unless-stopped
     volumes:
       - mautic_db:/var/lib/mysql
     environment:
@@ -762,6 +769,7 @@ services:
 
   mautic:
     image: mautic/mautic:v3
+    restart: unless-stopped
     depends_on:
       - mauticdb
     {%- if cookiecutter.expose_ports == 'y' %}
@@ -805,6 +813,7 @@ services:
     image:
       crramirez/limesurvey:latest
     {%- if cookiecutter.add_traefik_labels == 'y' %}
+    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.rule=Host(`p.{{ cookiecutter.domain }}`)"
@@ -885,6 +894,7 @@ services:
 
   moodle_db:
     image: docker.io/bitnami/mariadb:10.5
+    restart: unless-stopped
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
       - MARIADB_USER=bn_moodle
@@ -896,6 +906,7 @@ services:
 
   moodle:
     image: docker.io/bitnami/moodle:3
+    restart: unless-stopped
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - '8083:8080'
@@ -936,7 +947,7 @@ services:
   {%- if cookiecutter.use_rasax == 'y' %}
 
   rasa-x:
-    restart: always
+    restart: unless-stopped
     image: "rasa/rasa-x:${RASA_X_VERSION}"
     expose:
       - "5002"
@@ -965,7 +976,7 @@ services:
   db-migration:
     entrypoint: ["python"]
     command: ["-m", "rasax.community.services.db_migration_service"]
-    restart: always
+    restart: unless-stopped
     image: "rasa/rasa-x:${RASA_X_VERSION}"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || kill 1"]
@@ -1001,7 +1012,7 @@ services:
       RASA_MODEL_SERVER: "http://rasa-x:5002/api/projects/default/models/tags/production"
 
   app:
-    restart: always
+    restart: unless-stopped
     image: "rasa/rasa-x-demo:${RASA_X_DEMO_VERSION}"
     expose:
       - "5055"
@@ -1009,7 +1020,7 @@ services:
       - rasa-production
 
   db:
-    restart: always
+    restart: unless-stopped
     image: "bitnami/postgresql:11.11.0"
     expose:
       - "5432"
@@ -1021,7 +1032,7 @@ services:
       - rasax_db:/bitnami/postgresql
 
   rabbit:
-    restart: always
+    restart: unless-stopped
     image: "bitnami/rabbitmq:3.8.17"
     environment:
       RABBITMQ_HOST: "rabbit"
@@ -1032,14 +1043,14 @@ services:
       - "5672"
 
   duckling:
-    restart: always
+    restart: unless-stopped
     image: "rasa/duckling:0.1.6.5-r2"
     expose:
       - "8000"
     command: ["duckling-example-exe", "--no-access-log", "--no-error-log"]
                  
   nginx-rasa:
-    restart: always
+    restart: unless-stopped
     image: "nginx:1.19"
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
@@ -1077,8 +1088,8 @@ services:
 
   {%- if cookiecutter.use_rasax == 'y' or  cookiecutter.use_botpress == 'y' %}  
   redis:
-    restart: always
     image: "bitnami/redis:6.2.4"
+    restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     expose:
@@ -1151,6 +1162,7 @@ services:
 
   wiki:
     image: requarks/wiki:2
+    restart: unless-stopped
     depends_on:
       - postgres
     environment:
@@ -1187,6 +1199,7 @@ services:
 
   botpress:
     image: botpress/server
+    restart: unless-stopped
     command: /botpress/bp
     {%- if cookiecutter.expose_ports == 'y' %}
     expose:

@@ -456,7 +456,7 @@ services:
   {%- if cookiecutter.use_rocketchat == 'y' %}
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.7.0
+    image: rocketchat/rocket.chat:4.8.1
     restart: unless-stopped
     networks:
       - traefik-public

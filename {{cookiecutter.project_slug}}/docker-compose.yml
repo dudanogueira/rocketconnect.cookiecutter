@@ -145,7 +145,7 @@ x-rasa-credentials: &rasa-credentials
   <<: *database-credentials
   <<: *redis-credentials
   <<: *duckling-credentials
-  RASA_TOKEN: ${RASA_TOKEN}
+  RASA_TOKEN: ${RASA_TOKEN}connect
   RASA_MODEL_PULL_INTERVAL: 10
   RABBITMQ_QUEUE: "rasa_production_events"
   RASA_TELEMETRY_ENABLED: ${RASA_TELEMETRY_ENABLED:-true}
@@ -219,7 +219,7 @@ services:
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.tls.certresolver=le"
       {%- else %}
-      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.routers.traefik.entrypoints=web"connect
       {%- endif %}      
     networks:
       - traefik-public
@@ -265,7 +265,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:v0.4.0
+    image: dudanogueira/rocket.connect:v1.0.0
     restart: unless-stopped
     depends_on:
       - postgres

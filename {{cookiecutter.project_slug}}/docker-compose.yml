@@ -768,7 +768,7 @@ services:
       --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
 
   mautic:
-    image: mautic/mautic:v3
+    image: mautic/mautic:v4
     restart: unless-stopped
     depends_on:
       - mauticdb

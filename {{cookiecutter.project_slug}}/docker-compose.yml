@@ -178,7 +178,7 @@ services:
   {%- if cookiecutter.use_traefik == 'y' %}
 
   traefik:
-    image: "traefik:v2.4"
+    image: "traefik:v2.8"
     restart: unless-stopped
     command:
       #- "--log.level=DEBUG"
@@ -456,7 +456,7 @@ services:
   {%- if cookiecutter.use_rocketchat == 'y' %}
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.8.1
+    image: rocketchat/rocket.chat:4.8.3
     restart: unless-stopped
     networks:
       - traefik-public

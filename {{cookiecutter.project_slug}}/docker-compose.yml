@@ -265,7 +265,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:v1.1.0
+    image: dudanogueira/rocket.connect:v1.1.2
     restart: unless-stopped
     depends_on:
       - postgres

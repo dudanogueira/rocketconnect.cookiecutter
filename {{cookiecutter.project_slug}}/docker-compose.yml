@@ -69,7 +69,11 @@ volumes:
   {%- endif %}
   {%- if cookiecutter.use_botpress == 'y' %}
   botpress_data:
-  {%- endif %}  
+  {%- endif %}
+  {%- if cookiecutter.use_wordpress == 'y' %}
+  wordpress_data:
+  wordpress_db:
+  {%- endif %}    
 
 {%- if cookiecutter.use_openproject == 'y' %}
 
@@ -178,7 +182,7 @@ services:
   {%- if cookiecutter.use_traefik == 'y' %}
 
   traefik:
-    image: "traefik:v2.4"
+    image: "traefik:v2.8"
     restart: unless-stopped
     command:
       #- "--log.level=DEBUG"
@@ -1204,6 +1208,8 @@ services:
     {%- if cookiecutter.expose_ports == 'y' %}
     expose:
       - 3000
+    ports:
+      - "3000:3000"      
     {%- endif %}
     environment:
       - DATABASE_URL=postgres://!!!SET POSTGRES_USER!!!:!!!SET POSTGRES_PASSWORD!!!@postgres:5432/botpress
@@ -1215,8 +1221,6 @@ services:
       - redis
     volumes:
       - botpress_data:/botpress/data
-    ports:
-      - "3000:3000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.{{ cookiecutter.project_slug }}-botpress.rule=Host(`botpress.{{ cookiecutter.domain }}`)"
@@ -1229,6 +1233,48 @@ services:
       {%- endif %}
     networks:
       - traefik-public
-      - default         
+      - default
   {%- endif %}
+
+  {%- if cookiecutter.use_wordpress == 'y' %}
+
+  wordpress:
+      image: wordpress
+      restart: always
+      ports:
+        - 8085:80
+      environment:
+        WORDPRESS_DB_HOST: wordpress_db
+        WORDPRESS_DB_USER: wordpress_db_user
+        WORDPRESS_DB_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
+        WORDPRESS_DB_NAME: {{ cookiecutter.project_slug }}_wordpress_db
+      volumes:
+        - wordpress_data:/var/www/html
+      depends_on:
+        - wordpress_db
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.rule=Host(`wordpress.{{ cookiecutter.domain }}`)"
+        - "traefik.http.services.{{ cookiecutter.project_slug }}-wordpress.loadbalancer.server.port=80"
+        {%- if cookiecutter.use_letsencrypt == 'y' %}    
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=websecure"
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.tls.certresolver=le"
+        {%- else %}
+        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=web"
+        {%- endif %}
+    networks:
+      - traefik-public
+      - default
+
+  wordpress_db:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_DATABASE: {{ cookiecutter.project_slug }}_wordpress_db
+      MYSQL_USER: wordpress_db_user
+      MYSQL_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - wordpress_db:/var/lib/mysql
     
+  {%- endif %}

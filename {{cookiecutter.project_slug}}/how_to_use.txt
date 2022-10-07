@@ -1,4 +1,7 @@
-# MANAGEMENT AND BACKUP/RESTORE
+
+#
+# INITIAL
+#
 
 # enter the project folder
 cd {{ cookiecutter.project_slug}}

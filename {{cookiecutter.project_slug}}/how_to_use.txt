@@ -6,13 +6,6 @@
 # enter the project folder
 cd {{ cookiecutter.project_slug}}
 
-{%- if cookiecutter.use_rasax == 'y' %}
-
-# for some reason, rasax requires confs file to be of a specific permission
-sudo chgrp -R root confs/rasax/*.yml && sudo chmod -R 770 confs/rasax/*.yml
-sudo chgrp -R root data/rasax/ && sudo chmod -R 770 data/rasax/
-{%- endif %}
-
 # create a public, attachable network:
 docker network create --attachable traefik-public
 

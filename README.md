@@ -60,8 +60,7 @@ This content will be available at a how_to_use.txt inside your project.
     use_mautic [y]: 
     use_limesurvey [y]: 
     use_glpi [y]: 
-    use_moodle [y]: 
-    use_rasax [y]: 
+    use_moodle [y]:
     use_openproject [y]: 
 
     ####### TAKE NOTE!!!! #######
@@ -91,9 +90,6 @@ This content will be available at a how_to_use.txt inside your project.
 
     # enter the project folder
     cd mycompany
-
-    # for some reason, rasax requires confs file to be of a specific permission
-    sudo chgrp -R root confs/rasax/*.yml && sudo chmod -R 770 confs/rasax/*.yml
 
     # create a public, attachable network:
     docker network create --attachable traefik-public

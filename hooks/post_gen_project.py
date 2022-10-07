@@ -155,10 +155,6 @@ def main():
     if use_moodle == "y":
         print("User master password at: http://ead.{{ cookiecutter.domain}}")
 
-    use_rasax = '{{ cookiecutter.use_rasax}}'
-    if use_rasax == "y":
-        print("User master password at: http://bot.{{ cookiecutter.domain}}")
-
     use_metrics = '{{ cookiecutter.use_nextcloud}}'
     if use_metrics == "y":
         print(
@@ -179,20 +175,6 @@ def main():
     set_flag(
         compose_file,
         "!!!SET POSTGRES_PASSWORD!!!",
-        length=8,
-        using_digits=True,
-        using_ascii_letters=True,
-    )
-    set_flag(
-        env_file,
-        "!!!SET RASA_TOKEN!!!",
-        length=8,
-        using_digits=True,
-        using_ascii_letters=True,
-    )
-    set_flag(
-        env_file,
-        "!!!SET RASA_X_TOKEN!!!",
         length=8,
         using_digits=True,
         using_ascii_letters=True,

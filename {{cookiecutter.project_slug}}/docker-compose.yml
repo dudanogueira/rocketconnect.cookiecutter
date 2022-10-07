@@ -269,7 +269,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:v1.0.0
+    image: dudanogueira/rocket.connect:v1.1.2
     restart: unless-stopped
     depends_on:
       - postgres
@@ -460,7 +460,7 @@ services:
   {%- if cookiecutter.use_rocketchat == 'y' %}
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.8.1
+    image: rocketchat/rocket.chat:4.8.3
     restart: unless-stopped
     networks:
       - traefik-public
@@ -772,7 +772,7 @@ services:
       --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
 
   mautic:
-    image: mautic/mautic:v3
+    image: mautic/mautic:v4
     restart: unless-stopped
     depends_on:
       - mauticdb

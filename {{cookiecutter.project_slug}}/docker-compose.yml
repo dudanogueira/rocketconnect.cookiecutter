@@ -142,10 +142,10 @@ services:
       - traefik.http.services.traefik.loadbalancer.server.port=8080
       - traefik.http.middlewares.auth.basicauth.users=admin:!!!SET MASTER_ADMIN_PASSWORD_HASH!!!
       {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.traefik.entrypoints=websecure"
-      - "traefik.http.routers.traefik.tls.certresolver=le"
+      - traefik.http.routers.traefik.entrypoints=websecure
+      - traefik.http.routers.traefik.tls.certresolver=le
       {%- else %}
-      - "traefik.http.routers.traefik.entrypoints=web"connect
+      - traefik.http.routers.traefik.entrypoints=web
       {%- endif %}      
     networks:
       - traefik-public
@@ -191,7 +191,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:v1.1.2
+    image: dudanogueira/rocket.connect:v1.1.5
     restart: unless-stopped
     depends_on:
       - postgres
@@ -271,7 +271,7 @@ services:
 
   flower:
     <<: *django  
-    command: celery flower --app=config.celery_app  --broker="${CELERY_BROKER_URL}" --basic_auth="admin:!!!SET MASTER_ADMIN_PASSWORD!!!" --url_prefix=flower!!!SET DJANGO_ADMIN_URL!!!
+    command: celery flower --app=config.celery_app  --broker="${CELERY_BROKER_URL:-redis://redis:6379}" --basic_auth="admin:!!!SET MASTER_ADMIN_PASSWORD!!!" --url_prefix=flower!!!SET DJANGO_ADMIN_URL!!!
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - "5555:5555"
@@ -383,6 +383,7 @@ services:
 
   rocketchat:
     # reference: https://github.com/RocketChat/Docker.Official.Image/blob/master/compose.yml
+    # more on: https://docs.rocket.chat/quick-start/deploying-rocket.chat/rapid-deployment-methods/docker-and-docker-compose
     image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-4.8.6}
     restart: on-failure
     environment:
@@ -395,7 +396,7 @@ services:
       ROOT_URL: ${ROOT_URL:-http://localhost:${HOST_PORT:-3000}}
       PORT: ${PORT:-3000}
       DEPLOY_METHOD: docker
-      DEPLOY_PLATFORM: ${DEPLOY_PLATFORM}
+      DEPLOY_PLATFORM: ${DEPLOY_PLATFORM:-rocketconnect_cookiecutter}
     depends_on:
       - mongodb
     expose:
@@ -426,7 +427,7 @@ services:
     image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-4.4}
     restart: on-failure
     volumes:
-      - mongodb_data:/bitnami/mongodb
+      - rocketchat_db:/bitnami/mongodb
     environment:
       MONGODB_REPLICA_SET_MODE: primary
       MONGODB_REPLICA_SET_NAME: ${MONGODB_REPLICA_SET_NAME:-rs0}
@@ -999,29 +1000,29 @@ services:
   {%- if cookiecutter.use_wordpress == 'y' %}
 
   wordpress:
-      image: wordpress
-      restart: always
-      ports:
-        - 8085:80
-      environment:
-        WORDPRESS_DB_HOST: wordpress_db
-        WORDPRESS_DB_USER: wordpress_db_user
-        WORDPRESS_DB_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
-        WORDPRESS_DB_NAME: {{ cookiecutter.project_slug }}_wordpress_db
-      volumes:
-        - wordpress_data:/var/www/html
-      depends_on:
-        - wordpress_db
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.rule=Host(`wordpress.{{ cookiecutter.domain }}`)"
-        - "traefik.http.services.{{ cookiecutter.project_slug }}-wordpress.loadbalancer.server.port=80"
-        {%- if cookiecutter.use_letsencrypt == 'y' %}    
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=websecure"
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.tls.certresolver=le"
-        {%- else %}
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=web"
-        {%- endif %}
+    image: wordpress
+    restart: always
+    ports:
+      - 8085:80
+    environment:
+      WORDPRESS_DB_HOST: wordpress_db
+      WORDPRESS_DB_USER: wordpress_db_user
+      WORDPRESS_DB_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
+      WORDPRESS_DB_NAME: {{ cookiecutter.project_slug }}_wordpress_db
+    volumes:
+      - wordpress_data:/var/www/html
+    depends_on:
+      - wordpress_db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.rule=Host(`wordpress.{{ cookiecutter.domain }}`)"
+      - "traefik.http.services.{{ cookiecutter.project_slug }}-wordpress.loadbalancer.server.port=80"
+      {%- if cookiecutter.use_letsencrypt == 'y' %}    
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=websecure"
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.tls.certresolver=le"
+      {%- else %}
+      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=web"
+      {%- endif %}
     networks:
       - traefik-public
       - default

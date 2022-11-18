@@ -19,7 +19,8 @@ issue the folowing commands:
 
 Install dependencies
 ======================
-sudo apt-get install git docker docker-compose python3-pip
+curl -L https://get.docker.com | sh
+sudo apt-get install git python3-pip
 
 Install Cookiecutter
 ====================

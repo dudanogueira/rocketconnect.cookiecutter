@@ -19,16 +19,22 @@ issue the folowing commands:
 
 Install dependencies
 ======================
+```
 curl -L https://get.docker.com | sh
 sudo apt-get install git python3-pip
+```
 
 Install Cookiecutter
 ====================
+```
 pip install cookiecutter
+```
 
 Cut a cookie from this repo
 ===========
+```
 cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
+```
 
 Select your cookie flavours
 ===========

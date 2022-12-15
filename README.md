@@ -20,8 +20,8 @@ issue the folowing commands:
 Install dependencies
 ======================
 ```
+sudo apt-get install git python3-pip curl
 curl -L https://get.docker.com | sh
-sudo apt-get install git python3-pip
 ```
 
 Install Cookiecutter

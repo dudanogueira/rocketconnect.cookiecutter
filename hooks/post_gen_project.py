@@ -86,37 +86,17 @@ def main():
         using_digits=True,
         using_ascii_letters=True,
     )
+    set_flag(
+        os.path.join("how_to_use.txt"),
+        "!!!SET MASTER_ADMIN_PASSWORD!!!",
+        master_admin_password
+    )
     master_admin_password_pash = set_flag(
         compose_file,
         "!!!SET MASTER_ADMIN_PASSWORD_HASH!!!",
         value='{SHA}'+base64.b64encode(hashlib.sha1(
             master_admin_password.encode('utf-8')).digest()).decode()
     )
-    use_traefik = '{{ cookiecutter.use_traefik}}'
-
-    print("")
-    print("####### TAKE NOTE!!!! #######")
-    print("")
-    print("Master User/Password:  admin / {0}".format(master_admin_password))
-    print("")
-
-    use_phpweb = '{{ cookiecutter.use_phpweb}}'
-
-    use_phpweb = '{{ cookiecutter.use_phpweb}}'
-    if use_phpweb == "y":
-        print("#")
-        print("# Website at: http://www.{{ cookiecutter.domain}}")
-        print("#")
-
-    if use_traefik == "y":
-        print(
-            "# Use the master password at: http://traefik.{{ cookiecutter.domain}}/dashboard/")
-
-    use_rocketchat = '{{ cookiecutter.use_rocketchat}}'
-    if use_rocketchat == "y":
-        print(
-            "# Use the master password at. ADMIN is adminrc: http://chat.{{ cookiecutter.domain}}")
-
     use_rocketconnect = '{{ cookiecutter.use_rocketconnect}}'
     if use_rocketconnect == "y":
         print("# RocketConnect, run the following commands inside deploy folder")
@@ -129,41 +109,11 @@ def main():
         print(
             "# Use the master password at: http://rc.{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL)
 
-    use_metabase = '{{ cookiecutter.use_metabase}}'
-    if use_metabase == "y":
-        print(
-            "Configure a new user at: http://metabase.{{ cookiecutter.domain}}")
 
-    use_nextcloud = '{{ cookiecutter.use_nextcloud}}'
-    if use_nextcloud == "y":
-        print(
-            "Use the master password at: http://cloud.{{ cookiecutter.domain}}")
-
-    use_odoo = '{{ cookiecutter.use_odoo}}'
-    if use_odoo == "y":
-        print("Configure a new user at: http://odoo.{{ cookiecutter.domain}}")
-
-    use_mautic = '{{ cookiecutter.use_mautic}}'
-    if use_mautic == "y":
-        print("Configure a new user at: http://m.{{ cookiecutter.domain}}")
-
-    use_glpi = '{{ cookiecutter.use_glpi}}'
-    if use_glpi == "y":
-        print("Configure a new user at: http://glpi.{{ cookiecutter.domain}}")
-
-    use_moodle = '{{ cookiecutter.use_moodle}}'
-    if use_moodle == "y":
-        print("User master password at: http://ead.{{ cookiecutter.domain}}")
-
-    use_metrics = '{{ cookiecutter.use_nextcloud}}'
+    use_metrics = '{{ cookiecutter.use_rocketchat_metrics}}'
     if use_metrics == "y":
         print(
             "Use the master password at: http://grafana.{{ cookiecutter.domain}}")
-
-    use_wikijs = '{{ cookiecutter.use_wikijs}}'
-    if use_wikijs == "y":
-        print(
-            "Create a new admin user at: http://wiki.{{ cookiecutter.domain}}")
 
     set_flag(
         compose_file,
@@ -210,20 +160,6 @@ def main():
     set_flag(
         env_file,
         "!!!SET REDIS_PASSWORD!!!",
-        length=8,
-        using_digits=True,
-        using_ascii_letters=True,
-    )
-    set_flag(
-        compose_file,
-        "!!!SET GLPI_USER!!!",
-        length=8,
-        using_digits=True,
-        using_ascii_letters=True,
-    )
-    set_flag(
-        compose_file,
-        "!!!SET GLPI_PASSWORD!!!",
         length=8,
         using_digits=True,
         using_ascii_letters=True,

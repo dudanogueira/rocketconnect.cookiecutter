@@ -8,21 +8,9 @@
   "use_letsencrypt": "y",
   "add_traefik_labels": "y",
   "email_for_letsencrypt": "your@email.com",
-  "use_phpweb": "y",
   "use_rocketchat": "y",
   "use_rocketconnect": "y",
   "use_rocketchat_metrics": "y",
-  "use_waautomate": "n",
   "use_wppconnect": "y",
-  "use_wordpress": "y",
-  "use_metabase": "y",
-  "use_nextcloud": "y",
-  "use_odoo": "y",
-  "use_mautic": "y",
-  "use_limesurvey": "y",
-  "use_glpi": "y",
-  "use_moodle": "y",
-  "use_botpress": "y",
-  "use_openproject": "y",
-  "use_wikijs": "y"
+  "use_botpress": "y"
 }

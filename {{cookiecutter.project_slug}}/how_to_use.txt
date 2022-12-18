@@ -3,36 +3,29 @@
 # INITIAL
 #
 
+MASTER ADMIN PASSWORD: admin / !!!SET MASTER_ADMIN_PASSWORD!!!
+
 # enter the project folder
 cd {{ cookiecutter.project_slug}}
 
 # create a public, attachable network:
 docker network create --attachable traefik-public
 
-# Run base containers
-# some containers may encounter problems if postgres is not up
-# lets start them first and wait a little bit for the first run
-docker-compose up -d traefik postgres
-
-# Run other service
-# * after waiting a little bit.
-docker-compose up -d rocketchat
-docker-compose up -d rocketconnect
-docker-compose up -d metabase
-docker-compose up -d nextcloud
-docker-compose up -d ....
-
-# After the initial run, you can start all
+# Run containers
 docker-compose up -d
-
-# Or stop all containers
-docker-compose stop
 
 # watch all logs
 docker-compose logs -f --tail=10
 
+# access services
+{% if cookiecutter.use_traefik %}Use the master password at: http://traefik.{{ cookiecutter.domain}}/dashboard/{%- endif %}
+{% if cookiecutter.use_rocketchat %}Use the master password at. ADMIN is adminrc: http://chat.{{ cookiecutter.domain}}{%- endif %}
+
+# Or stop all containers
+docker-compose stop
+
 # or only a few
-docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
+docker-compose logs -f --tail=10 traefik rocketchat rocketconnect
 
 # list all VOLUMES used in this project
 docker volume ls | grep {{ cookiecutter.project_slug}}_

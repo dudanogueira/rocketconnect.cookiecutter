@@ -64,7 +64,7 @@ def set_flag(file_path, flag, value=None, formatted=None, *args, **kwargs):
 
 
 def main():
-    compose_file = os.path.join("docker compose.yml")
+    compose_file = os.path.join("docker-compose.yml")
     env_file = os.path.join(".env")
     django_secret_key = set_flag(
         compose_file,

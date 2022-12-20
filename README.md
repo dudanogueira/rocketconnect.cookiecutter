@@ -44,7 +44,7 @@ Above is the "form" you will need to answer to cut this cookie.
 At the end of it, you get simple cmomands on how to manage the stack.
 This content will be available at a how_to_use.txt inside your project.
 
-**The master password** is at the first line of your docker-compose.yml
+**The master password** is at the first line of your docker-compose.yml file
 
     root@mycompany.com.br:~$ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
     project_name [My Company]: 
@@ -79,8 +79,8 @@ This content will be available at a how_to_use.txt inside your project.
     # Use the master password at: http://traefik.mycompany.com.br/dashboard/
     # Use the master password at. ADMIN is adminrc: http://chat.mycompany.com.br
     # RocketConnect, run the following commands inside deploy folder
-    docker-compose run --rm rocketconnect python manage.py migrate
-    docker-compose run --rm rocketconnect python manage.py createsuperuser
+    docker compose run --rm rocketconnect python manage.py migrate
+    docker compose run --rm rocketconnect python manage.py createsuperuser
     #
     # Use the created user at:  http://rc.mycompany.com.br/adminL32yP
     # Use the created user at: http://rc.mycompany.com.br
@@ -104,33 +104,33 @@ This content will be available at a how_to_use.txt inside your project.
     # Run base containers
     # some containers may encounter problems if postgres is not uphttps://github.com/dudanogueira/rocketconnect.cookiecutter
     # lets start them first and wait a little bit for the first run
-    docker-compose up -d traefik postgres
+    docker compose up -d traefik postgres
 
     # Run other service
     # * after waiting a little bit.
-    docker-compose up -d rocketchat
-    docker-compose up -d rocketconnect
-    docker-compose up -d metabase
-    docker-compose up -d nextcloud
-    docker-compose up -d ....
+    docker compose up -d rocketchat
+    docker compose up -d rocketconnect
+    docker compose up -d metabase
+    docker compose up -d nextcloud
+    docker compose up -d ....
 
     # After the initial run, you can start all
-    docker-compose up -d
+    docker compose up -d
 
     # Or stop all containers
-    docker-compose stop
+    docker compose stop
 
     # watch all logs
-    docker-compose logs -f --tail=10
+    docker compose logs -f --tail=10
 
     # or only a few
-    docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
+    docker compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
 
     # list all VOLUMES used in this project
     docker volume ls | grep mycompany_
 
     # REMOVE all containers
-    docker-compose rm
+    docker compose rm
 
     # REMOVE all VOLUMES used in this project - WARNING!!!
     docker volume rm $(docker volume ls | grep mycompany_ | awk '{print $2}')

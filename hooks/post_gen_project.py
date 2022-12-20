@@ -5,6 +5,7 @@ import random
 import string
 import base64
 import hashlib
+import requests
 
 try:
     # Inspired by
@@ -63,7 +64,7 @@ def set_flag(file_path, flag, value=None, formatted=None, *args, **kwargs):
 
 
 def main():
-    compose_file = os.path.join("docker-compose.yml")
+    compose_file = os.path.join("docker compose.yml")
     env_file = os.path.join(".env")
     django_secret_key = set_flag(
         compose_file,
@@ -86,34 +87,35 @@ def main():
         using_digits=True,
         using_ascii_letters=True,
     )
-    set_flag(
-        os.path.join("how_to_use.txt"),
-        "!!!SET MASTER_ADMIN_PASSWORD!!!",
-        master_admin_password
-    )
     master_admin_password_pash = set_flag(
         compose_file,
         "!!!SET MASTER_ADMIN_PASSWORD_HASH!!!",
         value='{SHA}'+base64.b64encode(hashlib.sha1(
             master_admin_password.encode('utf-8')).digest()).decode()
     )
-    use_rocketconnect = '{{ cookiecutter.use_rocketconnect}}'
-    if use_rocketconnect == "y":
-        print("# RocketConnect, run the following commands inside deploy folder")
-        print("docker-compose run --rm rocketconnect python manage.py migrate")
-        print("docker-compose run --rm rocketconnect python manage.py createsuperuser")
-        print("#")
-        print(
-            "# Use the created user at:  http://rc.{{ cookiecutter.domain}}/admin"+DJANGO_ADMIN_URL)
-        print("# Use the created user at: http://rc.{{ cookiecutter.domain}}")
-        print(
-            "# Use the master password at: http://rc.{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL)
+    # get latest rocket.chat
+    # only after jump
+    # latest_rc = requests.get(
+    #     "https://api.github.com/repos/RocketChat/Rocket.Chat/releases/latest")
+    # last_rocketchat_tag = latest_rc["tag_name"]
 
+    # set_flag(
+    #     compose_file,
+    #     "!!!SET ROCKETCHAT_LATEST_TAG!!!",
+    #     last_rocketchat_tag
+    # )
 
-    use_metrics = '{{ cookiecutter.use_rocketchat_metrics}}'
-    if use_metrics == "y":
-        print(
-            "Use the master password at: http://grafana.{{ cookiecutter.domain}}")
+    # how to use replacements
+    set_flag(
+        os.path.join("how_to_use.txt"),
+        "!!!SET MASTER_ADMIN_PASSWORD!!!",
+        master_admin_password
+    )
+    set_flag(
+        os.path.join("how_to_use.txt"),
+        "!!!SET DJANGO_ADMIN_URL!!!",
+        DJANGO_ADMIN_URL
+    )
 
     set_flag(
         compose_file,

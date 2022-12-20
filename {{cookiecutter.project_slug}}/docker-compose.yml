@@ -38,7 +38,7 @@ services:
   {%- if cookiecutter.use_traefik == 'y' %}
 
   traefik:
-    image: "traefik:v2.8"
+    image: "traefik:v2.9"
     restart: unless-stopped
     command:
       #- "--log.level=DEBUG"
@@ -125,7 +125,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:v1.1.4
+    image: dudanogueira/rocket.connect:master
     restart: unless-stopped
     depends_on:
       - postgres
@@ -154,7 +154,7 @@ services:
       DJANGO_EMAIL_HOST: 'smtp_server'
       DJANGO_EMAIL_HOST_USER: 'smtp_user'
       DJANGO_EMAIL_HOST_PASSWORD: 'smtp_password'
-      DJANGO_ACCOUNT_EMAIL_VERIFICATION: 'optional' # mandatory, optonal, or none
+      DJANGO_ACCOUNT_EMAIL_VERIFICATION: 'optional' # mandatory, optional, or none
     healthcheck:
       test: curl --fail http://localhost:5000
       interval: 30s
@@ -279,7 +279,7 @@ services:
 
   rocketchat:
     # reference: https://github.com/RocketChat/Docker.Official.Image/blob/master/compose.yml
-    # more on: https://docs.rocket.chat/quick-start/deploying-rocket.chat/rapid-deployment-methods/docker-and-docker-compose
+    # more on: https://docs.rocket.chat/quick-start/deploying-rocket.chat/rapid-deployment-methods/docker-and-docker compose
     image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-4.8.7}
     restart: on-failure
     environment:

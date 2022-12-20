@@ -21,7 +21,6 @@ docker compose logs -f --tail=10
 {% if cookiecutter.use_rocketchat %}Complete the Wizard at: http://chat.{{ cookiecutter.domain}}{%- endif %}
 {% if cookiecutter.use_traefik %}Use the master password at: http://traefik.{{ cookiecutter.domain}}/dashboard/{%- endif %}
 {% if cookiecutter.use_rocketconnect %}# RocketConnect, run the following commands inside deployment folder
-docker compose run --rm rocketconnect python manage.py migrate
 docker compose run --rm rocketconnect python manage.py createsuperuser --username admin
 
 Use the created user at: http://rc.{{ cookiecutter.domain}}

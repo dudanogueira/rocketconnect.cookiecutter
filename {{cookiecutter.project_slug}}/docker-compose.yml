@@ -293,6 +293,8 @@ services:
       PORT: ${PORT:-3000}
       DEPLOY_METHOD: docker
       DEPLOY_PLATFORM: ${DEPLOY_PLATFORM:-rocketconnect_cookiecutter}
+      {%- if cookiecutter.use_rocketchat_metrics == 'y' %}
+      OVERWRITE_SETTING_Prometheus_Enabled: "true"{%- endif %}
     depends_on:
       - mongodb
     expose:
@@ -341,7 +343,7 @@ services:
 
   
   grafana:
-    image: grafana/grafana:8.2.5
+    image: grafana/grafana:9.3.2
     restart: unless-stopped
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
@@ -377,7 +379,7 @@ services:
     {%- endif %}
   
   prometheus:
-    image: quay.io/prometheus/prometheus:v2.31.1
+    image: quay.io/prometheus/prometheus:v2.40.7
     restart: unless-stopped
     ports:
      - 9090:9090

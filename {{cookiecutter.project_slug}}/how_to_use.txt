@@ -28,6 +28,7 @@ Use the created user at: http://rc.{{ cookiecutter.domain}}
 Use the master password at: http://rc.{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL{%- endif %}
 {% if cookiecutter.use_rocketchat_metrics %}
     Use the master password at: http://grafana.{{ cookiecutter.domain}}
+    Go to Dashboard > Manage > Rocket.Chat Metrics
 {%- endif %}
 # Or stop all containers
 docker compose stop

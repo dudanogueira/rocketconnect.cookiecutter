@@ -52,9 +52,9 @@ At the end of it, you get simple commands on how to manage the stack.
 This content will be available at a how_to_use.txt inside your project.
 
 **The master password** is at the first line of your docker-compose.yml file, as well as at the how_to_use.txt
-
-    root@mycompany.com.br:~$ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
-    project_name [My Company]: 
+```
+root@mycompany.com.br:~$ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
+project_name [My Company]: 
 project_slug [mycompany]: 
 domain [mycompany.localhost]:  mycompany.com.br
 use_portainer [y]: 
@@ -114,7 +114,7 @@ docker compose rm
 
 # REMOVE all VOLUMES used in this project - WARNING!!!
 docker volume rm $(docker volume ls | grep mycompany_ | awk '{print $2}')
-
+```
 
 RoadMap
 ===========
@@ -128,7 +128,7 @@ RoadMap
 - Security Check
 - Call it 1.0
 
-Proposed new open source ()
+Proposed new open source (will not included directly, but on separate compose)
 ===========
 - GroupOffice
 - Magento

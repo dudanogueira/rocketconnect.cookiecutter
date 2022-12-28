@@ -16,95 +16,29 @@ volumes:
   {%- if cookiecutter.use_portainer == 'y' %}
   portainer_data:
   {%- endif %}
-  {%- if cookiecutter.use_waautomate == 'y' %}
-  waautomate_session_data:
-  {%- endif %}
   {%- if cookiecutter.use_rocketchat == 'y' %}
-  rocketchat_uploads:
   rocketchat_db:
-  rocketchat_dump:
-  {%- endif %}
-  {%- if cookiecutter.use_nextcloud == 'y' %}
-  nextcloud_data:
-  {%- endif %}
-  {%- if cookiecutter.use_odoo == 'y' %}
-  odoo_data:
-  odoo_config:
-  odoo_addons:
-  odoo_db:
-  {%- endif %}
-  {%- if cookiecutter.use_mautic == 'y' %}
-  mautic_db:
-  mautic_data:
-  {%- endif %}
-  {%- if cookiecutter.use_limesurvey == 'y' %}
-  limesurvey_db:
-  limesurvey_uploads:
-  {%- endif %}
-  {%- if cookiecutter.use_glpi == 'y' %}
-  glpi_db:
-  glpi_files:
-  glpi_plugins:
-  {%- endif %}
-  {%- if cookiecutter.use_moodle == 'y' %}
-  moodle_db:
-  moodle_data:
-  {%- endif %}
-  {%- if cookiecutter.use_openproject == 'y' %}
-  openproject_pgdata:
-  openproject_opdata:
   {%- endif %}
   {%- if cookiecutter.use_wppconnect == 'y' %}
   wppconnect_data:
+  wppconnect_userdata_dir:
   {%- endif %}
   {%- if cookiecutter.use_rocketchat_metrics == 'y' %}
   prometeus_data:
   grafana_data:
   {%- endif %}
-  {%- if cookiecutter.use_wikijs == 'y' %}
-  wikijs_data:
-  {%- endif %}
   {%- if cookiecutter.use_botpress == 'y' %}
   botpress_data:
   {%- endif %}
-  {%- if cookiecutter.use_wordpress == 'y' %}
-  wordpress_data:
-  wordpress_db:
-  {%- endif %}    
-
-{%- if cookiecutter.use_openproject == 'y' %}
 
 
-x-op-restart-policy: &restart_policy
-  restart: unless-stopped
-x-op-image: &image
-  image: openproject/community:${TAG:-11}
-x-op-app: &app
-  <<: *image
-  <<: *restart_policy
-  environment:
-    RAILS_CACHE_STORE: "memcache"
-    OPENPROJECT_CACHE__MEMCACHE__SERVER: "cache:11211"
-    OPENPROJECT_RAILS__RELATIVE__URL__ROOT: "${OPENPROJECT_RAILS__RELATIVE__URL__ROOT:-}"
-    DATABASE_URL: "postgres://postgres:p4ssw0rd@db/openproject?pool=20&encoding=unicode&reconnect=true"
-    RAILS_MIN_THREADS: 4
-    RAILS_MAX_THREADS: 16
-    USE_PUMA: "true"
-    # set to true to enable the email receiving feature. See ./docker/cron for more options
-    IMAP_ENABLED: "${IMAP_ENABLED:-false}"
-  volumes:
-    - "openproject_opdata:/var/openproject/assets"
-  links:
-    - "openproject_db:db"
-    - "openproject_cache:cache"
-{%- endif %}
 
 services:
 
   {%- if cookiecutter.use_traefik == 'y' %}
 
   traefik:
-    image: "traefik:v2.8"
+    image: "traefik:v2.9"
     restart: unless-stopped
     command:
       #- "--log.level=DEBUG"
@@ -191,7 +125,7 @@ services:
   {%- if cookiecutter.use_rocketconnect == 'y' %}
 
   rocketconnect: &django
-    image: dudanogueira/rocket.connect:v1.1.4
+    image: dudanogueira/rocket.connect:master
     restart: unless-stopped
     depends_on:
       - postgres
@@ -220,7 +154,7 @@ services:
       DJANGO_EMAIL_HOST: 'smtp_server'
       DJANGO_EMAIL_HOST_USER: 'smtp_user'
       DJANGO_EMAIL_HOST_PASSWORD: 'smtp_password'
-      DJANGO_ACCOUNT_EMAIL_VERIFICATION: 'optional' # mandatory, optonal, or none
+      DJANGO_ACCOUNT_EMAIL_VERIFICATION: 'optional' # mandatory, optional, or none
     healthcheck:
       test: curl --fail http://localhost:5000
       interval: 30s
@@ -299,8 +233,7 @@ services:
 
   {%- endif %}
 
-  {%- if cookiecutter.use_rocketconnect == 'y' or cookiecutter.use_nextcloud == 'y' 
-    or cookiecutter.use_metabase == 'y' or cookiecutter.use_wikijs == 'y' or cookiecutter.use_botpress == 'y' %}
+  {%- if cookiecutter.use_rocketconnect == 'y' or cookiecutter.use_botpress == 'y' %}
 
   postgres:
     image: postgres
@@ -311,50 +244,12 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_MULTIPLE_DATABASES: rocket_connect{%- if cookiecutter.use_metabase == 'y' %},metabase{%-endif%}{%- if cookiecutter.use_nextcloud == 'y' %},nextcloud{%-endif%}{%- if cookiecutter.use_wikijs == 'y' %},wikijs{%-endif%}{%- if cookiecutter.use_botpress == 'y' %},botpress{%-endif%}
+      POSTGRES_MULTIPLE_DATABASES: rocket_connect,botpress
       POSTGRES_USER: !!!SET POSTGRES_USER!!!
       POSTGRES_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
 
   {%- endif %}
 
-  {%- if cookiecutter.use_waautomate == 'y' %}
-
-  waautomate1:
-    image: dudanogueira/waautomate:latest
-    restart: unless-stopped
-    command: npx @open-wa/wa-automate --ev "http://tasks.rocketconnect:5000/connector/0696DBBDDBA5435682CA/" --no-kill-on-logout
-    volumes:
-      - waautomate_session_data:/usr/src/app/session_data
-      - ./instances/instance1.json:/usr/src/app/cli.config.json
-    depends_on:
-      - browser
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - "8001:8002"
-    {% endif %}
-    links:
-      - "rocketconnect:tasks.rocketconnect"
-    
-  browser:
-    image: browserless/chrome:1.45-chrome-stable
-    restart: unless-stopped
-    hostname: browser
-    ports:
-      - "3010:3000"
-    environment:
-        CONNECTION_TIMEOUT: -1
-        KEEP_ALIVE: 'true'
-        WORKSPACE_EXPIRE_DAYS: 1
-        ENABLE_CORS: 'true'
-        CHROME_REFRESH_TIME: 86400000
-        DEFAULT_BLOCK_ADS: 'true'
-        FUNCTION_ENABLE_INCOGNITO_MODE: 'true'
-        ENABLE_XVBF: 'true'
-        CHROME_PATH: '/usr/bin/google-chrome'
-        USE_CHROME_STABLE: 'true'
-        NODE_ENV: 'production'
-  
-  {%- endif %}
 
   {%- if cookiecutter.use_wppconnect == 'y' %}
 
@@ -371,7 +266,8 @@ services:
       --no-webhook-onParticipantsChanged
       #--no-webhook-listenAcks
     volumes:
-      - wppconnect_data:/usr/src/server-cli/tokens      
+      - wppconnect_data:/usr/src/server-cli/tokens
+      - wppconnect_userdata_dir:/usr/src/server-cli/userDataDir
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
       - "21465:21465"
@@ -383,9 +279,9 @@ services:
 
   rocketchat:
     # reference: https://github.com/RocketChat/Docker.Official.Image/blob/master/compose.yml
-    # more on: https://docs.rocket.chat/quick-start/deploying-rocket.chat/rapid-deployment-methods/docker-and-docker-compose
-    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-4.8.6}
-    restart: on-failure
+    # more on: https://docs.rocket.chat/quick-start/deploying-rocket.chat/rapid-deployment-methods/docker-and-docker compose
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-4.8.7}
+    restart: unless-stopped
     environment:
       MONGO_URL: "${MONGO_URL:-\
         mongodb://${MONGODB_ADVERTISED_HOSTNAME:-mongodb}:${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}/\
@@ -397,6 +293,8 @@ services:
       PORT: ${PORT:-3000}
       DEPLOY_METHOD: docker
       DEPLOY_PLATFORM: ${DEPLOY_PLATFORM:-rocketconnect_cookiecutter}
+      {%- if cookiecutter.use_rocketchat_metrics == 'y' %}
+      OVERWRITE_SETTING_Prometheus_Enabled: "true"{%- endif %}
     depends_on:
       - mongodb
     expose:
@@ -425,7 +323,7 @@ services:
 
   mongodb:
     image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-4.4}
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - rocketchat_db:/bitnami/mongodb
     environment:
@@ -445,11 +343,11 @@ services:
 
   
   grafana:
-    image: grafana/grafana:8.2.5
+    image: grafana/grafana:9.3.2
     restart: unless-stopped
     {%- if cookiecutter.expose_ports == 'y' %}
     ports:
-      - "3001:3000"
+      - "3002:3000"
     {%- endif %}
     volumes:
       - ./confs/rocketchat_metrics/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
@@ -481,7 +379,7 @@ services:
     {%- endif %}
   
   prometheus:
-    image: quay.io/prometheus/prometheus:v2.31.1
+    image: quay.io/prometheus/prometheus:v2.40.7
     restart: unless-stopped
     ports:
      - 9090:9090
@@ -496,361 +394,6 @@ services:
   {%- endif %}
 
 
-  {%- if cookiecutter.use_phpweb == 'y' %}
-
-  apache:
-    image: 'php:apache'
-    restart: unless-stopped
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-       - "81:80"
-    {%- endif %}
-    volumes:
-      - ./site:/var/www/html
-      - ./confs/apache/additional.conf:/etc/apache2/conf-enabled/additional.conf
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.rule=Host(`{{ cookiecutter.domain }}`) || Host(`www.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-apache.loadbalancer.server.port=80"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-apache.entrypoints=web"
-      {%- endif %}
-    {%- endif %}
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}
-
-  {%- endif %}
-
-  {%- if cookiecutter.use_metabase == 'y' %}
-  
-  metabase:
-    image: metabase/metabase:v0.41.2
-    restart: unless-stopped
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - 3001:3000
-    {%- endif %}
-    environment: 
-      MB_DB_TYPE: postgres
-      MB_DB_DBNAME: metabase
-      MB_DB_PORT: 5432
-      MB_DB_USER: !!!SET POSTGRES_USER!!!
-      MB_DB_PASS: !!!SET POSTGRES_PASSWORD!!!
-      MB_DB_HOST: postgres
-      MB_SITE_URL: http://metabase.{{ cookiecutter.domain }}
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.rule=Host(`metabase.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-metabase.loadbalancer.server.port=3000"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-metabase.entrypoints=web"
-      {%- endif %}
-    {%- endif %}
-    depends_on:
-      - postgres   
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}
-
-  {%- endif %}
-
-  {%- if cookiecutter.use_nextcloud == 'y' %}
-
-  nextcloud:
-    image: nextcloud:22.2.3
-    restart: unless-stopped
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - 8084:80
-    {%- endif %}
-    links:
-      - postgres
-    volumes:
-      - nextcloud_data:/var/www/html
-    environment:
-      - POSTGRES_HOST=postgres # service name for postgres as assigned by Docker
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=!!!SET POSTGRES_USER!!! # will access postgres over 5432
-      - POSTGRES_PASSWORD=!!!SET POSTGRES_PASSWORD!!!
-      - NEXTCLOUD_ADMIN_USER=admin
-      - NEXTCLOUD_ADMIN_PASSWORD=!!!SET MASTER_ADMIN_PASSWORD!!!
-      - NEXTCLOUD_TRUSTED_DOMAINS= localhost cloud.{{ cookiecutter.domain }}
-      # - REDIS_HOST
-      # - REDIS_HOST_PORT
-      # - REDIS_HOST_PASSWORD
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.rule=Host(`cloud.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-nextcloud.loadbalancer.server.port=80"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-nextcloud.entrypoints=web"
-      {%- endif %}
-    {%- endif %}
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}    
-    #entrypoint: ["/wait-for-it.sh", "postgres:5432", "--", "apache2-foreground"]
-  {%- endif %}
-
-  {%- if cookiecutter.use_odoo == 'y' %}
-
-  odoo:
-    image: odoo:14.0
-    restart: unless-stopped
-    depends_on:
-      - odoo_db
-    volumes:
-      - odoo_data:/var/lib/odoo
-      - odoo_config:/etc/odoo
-      - odoo_addons:/mnt/extra-addons
-    links:
-      - odoo_db:db
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - 8069:8069
-    {%- endif %}
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.rule=Host(`odoo.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-odoo.loadbalancer.server.port=8069"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-odoo.entrypoints=web"
-      {%- endif %}
-    {%- endif %}
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}
-
-  odoo_db:
-    image: postgres:10
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=odoo
-      - POSTGRES_USER=odoo
-      - PGDATA=/var/lib/postgresql/data/pgdata
-    volumes:
-      - ./data/odoo/db:/var/lib/postgresql/data/pgdata
-
-
-  {%- endif %}
-
-
-  {%- if cookiecutter.use_mautic == 'y' %}
-  mauticdb:
-    image: powertic/percona-docker
-    restart: unless-stopped
-    volumes:
-      - mautic_db:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=!!!SET POSTGRES_PASSWORD!!!
-    command:
-      --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
-
-  mautic:
-    image: mautic/mautic:v4
-    restart: unless-stopped
-    depends_on:
-      - mauticdb
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - 8088:80
-    {%- endif %}
-    volumes:
-      - mautic_data:/var/www/html
-    environment:
-      - MAUTIC_DB_HOST=mauticdb
-      - MYSQL_PORT_3306_TCP=3306
-      - MAUTIC_DB_USER=root
-      - MAUTIC_DB_PASSWORD=!!!SET POSTGRES_PASSWORD!!!
-      - MAUTIC_DB_NAME=mautic
-      - MAUTIC_RUN_CRON_JOBS=true
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.rule=Host(`m.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-mautic.loadbalancer.server.port=80"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-mautic.entrypoints=web"
-      {%- endif %}
-    {%- endif %}  
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}        
-  {%- endif %}
-
-  {%- if cookiecutter.use_limesurvey == 'y' %}
-  
-  limesurvey:
-    volumes:
-      - limesurvey_db:/var/lib/mysql
-      - limesurvey_uploads:/app/upload
-    image:
-      crramirez/limesurvey:latest
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.rule=Host(`p.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-limesurvey.loadbalancer.server.port=80"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-limesurvey.entrypoints=web"
-      {%- endif %}
-    {%- endif %}            
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - 8081:8081
-    {%- endif %}
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}
-
-  {%- endif %}
-
-  {%- if cookiecutter.use_glpi == 'y' %}
-
-  glpi_db: 
-    image: fametec/glpi:9.5.4-mariadb
-    restart: unless-stopped
-    volumes: 
-      - glpi_db:/var/lib/mysql:rw
-    environment: 
-      MYSQL_DATABASE: glpi
-      MYSQL_USER: !!!SET GLPI_USER!!! 
-      MYSQL_PASSWORD: !!!SET GLPI_PASSWORD!!!
-      MYSQL_RANDOM_ROOT_PASSWORD: 1 
-
-  glpi: 
-    image: fametec/glpi:9.5.4
-    restart: unless-stopped
-    volumes: 
-      - glpi_files:/var/www/html/files:rw
-      - glpi_plugins:/var/www/html/plugins:rw
-    environment: 
-      GLPI_LANG: pt_BR
-      MARIADB_HOST: glpi_db
-      MARIADB_PORT: 3306
-      MARIADB_DATABASE: glpi
-      MARIADB_USER: !!!SET GLPI_USER!!!
-      MARIADB_PASSWORD: !!!SET GLPI_PASSWORD!!!
-      VERSION: "9.5.4"
-      PLUGINS: "all"
-    depends_on: 
-      - glpi_db
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.rule=Host(`glpi.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-glpi.loadbalancer.server.port=80"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-glpi.entrypoints=web"
-      {%- endif %}
-    {%- endif %}  
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - 8082:80
-    {%- endif %}  
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}  
-  {%- endif %}
-
-  {%- if cookiecutter.use_moodle == 'y' %}
-
-  moodle_db:
-    image: docker.io/bitnami/mariadb:10.5
-    restart: unless-stopped
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - MARIADB_USER=bn_moodle
-      - MARIADB_DATABASE=bitnami_moodle
-      - MARIADB_CHARACTER_SET=utf8mb4
-      - MARIADB_COLLATE=utf8mb4_unicode_ci
-    volumes:
-      - 'moodle_db:/bitnami/mariadb'
-
-  moodle:
-    image: docker.io/bitnami/moodle:3
-    restart: unless-stopped
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - '8083:8080'
-    {%- endif %}
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.rule=Host(`ead.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-ead.loadbalancer.server.port=8080"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-ead.entrypoints=web"
-      {%- endif %}
-    {%- endif %}      
-    environment:
-      - MOODLE_USERNAME=admin
-      - MOODLE_PASSWORD=!!!SET MASTER_ADMIN_PASSWORD!!!
-      - MOODLE_SITE_NAME={{cookiecutter.project_name}}
-      - MOODLE_DATABASE_HOST=moodle_db
-      - MOODLE_DATABASE_PORT_NUMBER=3306
-      - MOODLE_DATABASE_USER=bn_moodle
-      - MOODLE_DATABASE_NAME=bitnami_moodle
-      - ALLOW_EMPTY_PASSWORD=yes
-    volumes:
-      - 'moodle_data:/bitnami/moodle'
-    depends_on:
-      - moodle_db
-    {%- if cookiecutter.use_traefik == 'y' %}
-    networks:
-      - traefik-public
-      - default
-    {%- endif %}
-  
-  {%- endif %}
-
-  
-
   {%- if cookiecutter.use_botpress == 'y' %}  
   redis:
     image: "bitnami/redis:6.2.4"
@@ -860,108 +403,6 @@ services:
     expose:
       - "6379"
 
-  {%- endif %}
-
-  {%- if cookiecutter.use_openproject == 'y' %}  
-  # reference
-  # https://www.openproject.org/docs/installation-and-operations/installation/docker/
-  openproject_db:
-    image: postgres:10
-    <<: *restart_policy
-    stop_grace_period: "3s"
-    volumes:
-      - "openproject_pgdata:/var/lib/postgresql/data"
-    environment:
-      POSTGRES_PASSWORD: p4ssw0rd
-      POSTGRES_DB: openproject
-
-  openproject_cache:
-    image: memcached
-    <<: *restart_policy
-
-  openproject:
-    <<: *app
-    command: "./docker/prod/web"
-    depends_on:
-      - openproject_db
-      - openproject_cache
-      - openproject_seeder
-    networks:
-      - traefik-public
-      - default
-    labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.rule=Host(`projects.{{ cookiecutter.domain }}`)"
-        - "traefik.http.services.{{ cookiecutter.project_slug }}-projects.loadbalancer.server.port=8080"
-        {%- if cookiecutter.use_letsencrypt == 'y' %}
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.entrypoints=websecure"
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.tls.certresolver=le"
-        {%- else %}
-        - "traefik.http.routers.{{ cookiecutter.project_slug }}-projects.entrypoints=web"
-        {%- endif %}   
-
-  openproject_worker:
-    <<: *app
-    command: "./docker/prod/worker"
-    depends_on:
-      - openproject_db
-      - openproject_cache
-      - openproject_seeder
-
-  openproject_cron:
-    <<: *app
-    command: "./docker/prod/cron"
-    depends_on:
-      - openproject_db
-      - openproject_cache
-      - openproject_seeder
-
-  openproject_seeder:
-    <<: *app
-    command: "./docker/prod/seeder"
-    restart: on-failure
-
-  {%- endif %}
-
-  {%- if cookiecutter.use_wikijs == 'y' %}
-
-  wiki:
-    image: requarks/wiki:2
-    restart: unless-stopped
-    depends_on:
-      - postgres
-    environment:
-      DB_TYPE: postgres
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: !!!SET POSTGRES_USER!!!
-      DB_PASS: !!!SET POSTGRES_PASSWORD!!!
-      DB_NAME: wikijs
-    restart: unless-stopped
-    networks:
-      - traefik-public
-      - default    
-    {%- if cookiecutter.expose_ports == 'y' %}
-    ports:
-      - 8056:3000
-    {%- endif %}
-    {%- if cookiecutter.add_traefik_labels == 'y' %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wikijs.rule=Host(`wiki.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-wikijs.loadbalancer.server.port=3000"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wikijs.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wikijs.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wikijs.entrypoints=web"
-      {%- endif %}
-    {%- endif %}          
-
-  {%- endif %}
-
- {%- if cookiecutter.use_botpress == 'y' %}
-
   botpress:
     image: botpress/server
     restart: unless-stopped
@@ -970,7 +411,7 @@ services:
     expose:
       - 3000
     ports:
-      - "3000:3000"      
+      - "3001:3000"      
     {%- endif %}
     environment:
       - DATABASE_URL=postgres://!!!SET POSTGRES_USER!!!:!!!SET POSTGRES_PASSWORD!!!@postgres:5432/botpress
@@ -995,47 +436,4 @@ services:
     networks:
       - traefik-public
       - default
-  {%- endif %}
-
-  {%- if cookiecutter.use_wordpress == 'y' %}
-
-  wordpress:
-    image: wordpress
-    restart: always
-    ports:
-      - 8085:80
-    environment:
-      WORDPRESS_DB_HOST: wordpress_db
-      WORDPRESS_DB_USER: wordpress_db_user
-      WORDPRESS_DB_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
-      WORDPRESS_DB_NAME: {{ cookiecutter.project_slug }}_wordpress_db
-    volumes:
-      - wordpress_data:/var/www/html
-    depends_on:
-      - wordpress_db
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.rule=Host(`wordpress.{{ cookiecutter.domain }}`)"
-      - "traefik.http.services.{{ cookiecutter.project_slug }}-wordpress.loadbalancer.server.port=80"
-      {%- if cookiecutter.use_letsencrypt == 'y' %}    
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=websecure"
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.tls.certresolver=le"
-      {%- else %}
-      - "traefik.http.routers.{{ cookiecutter.project_slug }}-wordpress.entrypoints=web"
-      {%- endif %}
-    networks:
-      - traefik-public
-      - default
-
-  wordpress_db:
-    image: mysql:8
-    restart: always
-    environment:
-      MYSQL_DATABASE: {{ cookiecutter.project_slug }}_wordpress_db
-      MYSQL_USER: wordpress_db_user
-      MYSQL_PASSWORD: !!!SET POSTGRES_PASSWORD!!!
-      MYSQL_RANDOM_ROOT_PASSWORD: '1'
-    volumes:
-      - wordpress_db:/var/lib/mysql
-    
   {%- endif %}

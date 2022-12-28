@@ -3,42 +3,43 @@
 # INITIAL
 #
 
+MASTER ADMIN PASSWORD: admin / !!!SET MASTER_ADMIN_PASSWORD!!!
+
 # enter the project folder
 cd {{ cookiecutter.project_slug}}
 
 # create a public, attachable network:
 docker network create --attachable traefik-public
 
-# Run base containers
-# some containers may encounter problems if postgres is not up
-# lets start them first and wait a little bit for the first run
-docker-compose up -d traefik postgres
-
-# Run other service
-# * after waiting a little bit.
-docker-compose up -d rocketchat
-docker-compose up -d rocketconnect
-docker-compose up -d metabase
-docker-compose up -d nextcloud
-docker-compose up -d ....
-
-# After the initial run, you can start all
-docker-compose up -d
-
-# Or stop all containers
-docker-compose stop
+# Run containers
+docker compose up -d
 
 # watch all logs
-docker-compose logs -f --tail=10
+docker compose logs -f --tail=10
+
+# access services
+{% if cookiecutter.use_rocketchat %}Complete the Wizard at: http://chat.{{ cookiecutter.domain}}{%- endif %}
+{% if cookiecutter.use_traefik %}Use the master password at: http://traefik.{{ cookiecutter.domain}}/dashboard/{%- endif %}
+{% if cookiecutter.use_rocketconnect %}# RocketConnect, run the following commands inside deployment folder
+docker compose run --rm rocketconnect python manage.py createsuperuser --username admin
+
+Use the created user at: http://rc.{{ cookiecutter.domain}}
+Use the master password at: http://rc.{{ cookiecutter.domain}}/flower"+DJANGO_ADMIN_URL{%- endif %}
+{% if cookiecutter.use_rocketchat_metrics %}
+    Use the master password at: http://grafana.{{ cookiecutter.domain}}
+    Go to Dashboard > Manage > Rocket.Chat Metrics
+{%- endif %}
+# Or stop all containers
+docker compose stop
 
 # or only a few
-docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
+docker compose logs -f --tail=10 traefik rocketchat rocketconnect
 
 # list all VOLUMES used in this project
 docker volume ls | grep {{ cookiecutter.project_slug}}_
 
 # REMOVE all containers
-docker-compose rm
+docker compose rm
 
 # REMOVE all VOLUMES used in this project - WARNING!!!
 docker volume rm $(docker volume ls | grep {{ cookiecutter.project_slug}}_ | awk '{print $2}')

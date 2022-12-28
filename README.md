@@ -30,6 +30,13 @@ Install Cookiecutter
 pip install cookiecutter
 ```
 
+
+Point your domain at it
+===========
+If you are deploying on a server with public ip, point mycompany.com.br and *.mycompany.com.br to the server ip.
+
+if you are deploying locally, or to test, do not choose lets encrypt, and set the domain to `mycompany.localhost` or just follow with defaults. You cal also expose ports when using it locally.
+
 Cut a cookie from this repo
 ===========
 ```
@@ -39,109 +46,75 @@ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
 Select your cookie flavours
 ===========
 
-Above is the "form" you will need to answer to cut this cookie.
+Bellow is the "form" you will need to answer to cut this cookie.
 
-At the end of it, you get simple cmomands on how to manage the stack.
+At the end of it, you get simple commands on how to manage the stack.
 This content will be available at a how_to_use.txt inside your project.
 
-**The master password** is at the first line of your docker-compose.yml
+**The master password** is at the first line of your docker-compose.yml file, as well as at the how_to_use.txt
 
     root@mycompany.com.br:~$ cookiecutter https://github.com/dudanogueira/rocketconnect_cookiecutter
     project_name [My Company]: 
-    project_slug [mycompany]: 
-    domain [mycompany.localhost]: mycompany.com.br
-    use_portainer [y]: 
-    use_traefik [y]: 
-    expose_ports [n]: 
-    use_letsencrypt [y]: 
-    add_traefik_labels [y]: 
-    email_for_letsencrypt [your@email.com]: 
-    use_phpweb [y]: 
-    use_rocketchat [y]: 
-    use_rocketconnect [y]: 
-    use_waautomate [y]: 
-    use_wppconnect [y]: 
-    use_metabase [y]: 
-    use_nextcloud [y]: 
-    use_odoo [y]: 
-    use_mautic [y]: 
-    use_limesurvey [y]: 
-    use_glpi [y]: 
-    use_moodle [y]:
-    use_openproject [y]: 
+project_slug [mycompany]: 
+domain [mycompany.localhost]:  mycompany.com.br
+use_portainer [y]: 
+use_traefik [y]: 
+expose_ports [n]: 
+use_letsencrypt [y]: 
+add_traefik_labels [y]: 
+email_for_letsencrypt [your@email.com]: 
+use_rocketchat [y]: 
+use_rocketconnect [y]: 
+use_rocketchat_metrics [y]: 
+use_wppconnect [y]: 
+use_botpress [y]: 
+######################
 
-    ####### TAKE NOTE!!!! #######
-    Master User/Password:  admin / XXXXXXXXXX
+#
+# INITIAL
+#
 
-    #
-    # Website at: http://www.mycompany.com.br
-    #
-    # Use the master password at: http://traefik.mycompany.com.br/dashboard/
-    # Use the master password at. ADMIN is adminrc: http://chat.mycompany.com.br
-    # RocketConnect, run the following commands inside deploy folder
-    docker-compose run --rm rocketconnect python manage.py migrate
-    docker-compose run --rm rocketconnect python manage.py createsuperuser
-    #
-    # Use the created user at:  http://rc.mycompany.com.br/adminL32yP
-    # Use the created user at: http://rc.mycompany.com.br
-    # Use the master password at: http://rc.mycompany.com.br/flowerL32yP
-    Configure a new user at: http://metabase.mycompany.com.br
-    Use the master password at: http://cloud.mycompany.com.br
-    Configure a new user at: http://odoo.mycompany.com.br
-    Configure a new user at: http://m.mycompany.com.br
-    Configure a new user at: http://glpi.mycompany.com.br
-    User master password at: http://ead.mycompany.com.br
-    User master password at: http://bot.mycompany.com.br
-    ######################
-    # MANAGEMENT AND BACKUP/RESTORE
+MASTER ADMIN PASSWORD: admin / UHIuoHCR2C
 
-    # enter the project folder
-    cd mycompany
+# enter the project folder
+cd mycompany
 
-    # create a public, attachable network:
-    docker network create --attachable traefik-public
+# create a public, attachable network:
+docker network create --attachable traefik-public
 
-    # Run base containers
-    # some containers may encounter problems if postgres is not uphttps://github.com/dudanogueira/rocketconnect.cookiecutter
-    # lets start them first and wait a little bit for the first run
-    docker-compose up -d traefik postgres
+# Run containers
+docker compose up -d
 
-    # Run other service
-    # * after waiting a little bit.
-    docker-compose up -d rocketchat
-    docker-compose up -d rocketconnect
-    docker-compose up -d metabase
-    docker-compose up -d nextcloud
-    docker-compose up -d ....
+# watch all logs
+docker compose logs -f --tail=10
 
-    # After the initial run, you can start all
-    docker-compose up -d
+# access services
+Complete the Wizard at: http://chat.mycompany.localhost
+Use the master password at: http://traefik.mycompany.localhost/dashboard/
+# RocketConnect, run the following commands inside deployment folder
+docker compose run --rm rocketconnect python manage.py migrate
+docker compose run --rm rocketconnect python manage.py createsuperuser --username admin
 
-    # Or stop all containers
-    docker-compose stop
+Use the created user at: http://rc.mycompany.localhost
+Use the master password at: http://rc.mycompany.localhost/flower"+DJANGO_ADMIN_URL
 
-    # watch all logs
-    docker-compose logs -f --tail=10
+    Use the master password at: http://grafana.mycompany.localhost
+    Go to Dashboard > Manage > Rocket.Chat Metrics
+# Or stop all containers
+docker compose stop
 
-    # or only a few
-    docker-compose logs -f --tail=10 traefik postgres rocketchat rocketconnect
+# or only a few
+docker compose logs -f --tail=10 traefik rocketchat rocketconnect
 
-    # list all VOLUMES used in this project
-    docker volume ls | grep mycompany_
+# list all VOLUMES used in this project
+docker volume ls | grep mycompany_
 
-    # REMOVE all containers
-    docker-compose rm
+# REMOVE all containers
+docker compose rm
 
-    # REMOVE all VOLUMES used in this project - WARNING!!!
-    docker volume rm $(docker volume ls | grep mycompany_ | awk '{print $2}')
+# REMOVE all VOLUMES used in this project - WARNING!!!
+docker volume rm $(docker volume ls | grep mycompany_ | awk '{print $2}')
 
-
-
-Point your domain at it
-===========
-If you deployed at a server with public ip, point mycompany.com.br and *.mycompany.com.br to the server ip.
-
-if you are deploying locally, or to test, do not choose lets encript, and set the domain to myclient.localhost.
 
 RoadMap
 ===========
@@ -155,7 +128,7 @@ RoadMap
 - Security Check
 - Call it 1.0
 
-Proposed new open source
+Proposed new open source ()
 ===========
 - GroupOffice
 - Magento

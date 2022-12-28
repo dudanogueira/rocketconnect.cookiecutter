@@ -281,7 +281,7 @@ services:
     # reference: https://github.com/RocketChat/Docker.Official.Image/blob/master/compose.yml
     # more on: https://docs.rocket.chat/quick-start/deploying-rocket.chat/rapid-deployment-methods/docker-and-docker compose
     image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-4.8.7}
-    restart: on-failure
+    restart: unless-stopped
     environment:
       MONGO_URL: "${MONGO_URL:-\
         mongodb://${MONGODB_ADVERTISED_HOSTNAME:-mongodb}:${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}/\
@@ -323,7 +323,7 @@ services:
 
   mongodb:
     image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-4.4}
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - rocketchat_db:/bitnami/mongodb
     environment:

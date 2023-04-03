@@ -155,11 +155,6 @@ services:
       DJANGO_EMAIL_HOST_USER: 'smtp_user'
       DJANGO_EMAIL_HOST_PASSWORD: 'smtp_password'
       DJANGO_ACCOUNT_EMAIL_VERIFICATION: 'optional' # mandatory, optional, or none
-    healthcheck:
-      test: curl --fail http://localhost:5000
-      interval: 30s
-      timeout: 10s
-      retries: 3
     {%- if cookiecutter.add_traefik_labels == 'y' %}
     labels:
       - "traefik.enable=true"

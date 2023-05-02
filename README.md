@@ -38,6 +38,12 @@ If you are deploying on a server with public ip, point mycompany.com.br and *.my
 
 if you are deploying locally, or to test, do not choose lets encrypt, and set the domain to `mycompany.localhost` or just follow with defaults. You cal also expose ports when using it locally.
 
+Create an attachable network for traffic:
+=====================
+```
+docker network create --attachable traefik-public
+```
+
 Cut a cookie from this repo
 ===========
 ```

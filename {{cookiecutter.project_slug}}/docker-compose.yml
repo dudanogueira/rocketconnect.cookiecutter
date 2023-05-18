@@ -155,6 +155,9 @@ services:
       DJANGO_EMAIL_HOST_USER: 'smtp_user'
       DJANGO_EMAIL_HOST_PASSWORD: 'smtp_password'
       DJANGO_ACCOUNT_EMAIL_VERIFICATION: 'optional' # mandatory, optional, or none
+      {%- if cookiecutter.expose_ports == 'y' %}
+      DJANGO_SESSION_COOKIE_SECURE: "False"
+      {%- endif %}
     healthcheck:
       test: curl --fail http://localhost:5000
       interval: 30s
